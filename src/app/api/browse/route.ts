@@ -7,7 +7,7 @@ export type BrowseVideo = { url: string; title: string; thumbnail: string | null
 export async function GET(req: Request) {
   try {
     const user = await requireUser();
-    const rl = rateLimit(`browse:${user.id}`, 20, 60 * 60 * 1000);
+    const rl = rateLimit(`browse:${user.id}`, 60, 60 * 60 * 1000);
     if (!rl.ok) return fail("Too many channel lookups. Try later.", 429);
 
     const url = new URL(req.url);
@@ -125,7 +125,7 @@ async function browseYoutube(channel: string): Promise<BrowseVideo[]> {
       title,
       thumbnail: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
     });
-    if (videos.length >= 24) break;
+    if (videos.length >= 100) break;
   }
   return videos;
 }
@@ -253,7 +253,7 @@ async function browseDailymotion(username: string): Promise<BrowseVideo[]> {
     };
     return (data.list ?? [])
       .filter((v) => typeof v.id === "string")
-      .slice(0, 24)
+      .slice(0, 100)
       .map((v) => ({
         url: `https://www.dailymotion.com/video/${v.id}`,
         title: (v.title ?? "Untitled").slice(0, 140),

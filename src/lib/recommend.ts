@@ -7,7 +7,7 @@ export type ScoredVideo = {
   durationSec: number;
   views: number;
   createdAt: Date;
-  score: number;
+  score?: number;
   reason?: string;
   owner: { username: string; displayName: string; avatarUrl: string | null };
 };
@@ -66,10 +66,9 @@ export async function getTrending(limit = 24): Promise<ScoredVideo[]> {
     },
   });
 
-  return candidates
-    .map((v) => ({ ...v, score: trendingScore(v.views, v.createdAt) * (0.75 + Math.random() * 0.5), reason: "Trending" }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+  return shuffle(
+    candidates.map((v) => ({ ...v, score: trendingScore(v.views, v.createdAt), reason: "Trending" }))
+  ).slice(0, limit);
 }
 
 export async function getRelatedVideos(
@@ -124,8 +123,7 @@ export async function getRelatedVideos(
     return { ...v, score, reason };
   });
 
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, limit);
+  return shuffle(scored).slice(0, limit);
 }
 
 export async function getPersonalFeed(
@@ -209,6 +207,22 @@ export async function getPersonalFeed(
     return { ...v, score, reason };
   });
 
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, limit);
+  return shuffle(scored).slice(0, limit);
+}
+
+export async function getRandomFeed(limit = 12): Promise<ScoredVideo[]> {
+  const ids = await randomPublicIds(limit);
+  const videos = await db.video.findMany({
+    where: { visibility: "PUBLIC", id: { in: ids } },
+    select: {
+      id: true,
+      title: true,
+      thumbnailUrl: true,
+      durationSec: true,
+      views: true,
+      createdAt: true,
+      owner: { select: { username: true, displayName: true, avatarUrl: true } },
+    },
+  });
+  return shuffle(videos);
 }

@@ -8,6 +8,7 @@ import RecordView from "@/components/RecordView";
 import WatchActions from "@/components/WatchActions";
 import Comments from "@/components/Comments";
 import SubscribeButton from "@/components/SubscribeButton";
+import VideoPlayer from "@/components/VideoPlayer";
 import VerifiedBadge from "@/components/VerifiedBadge";
 
 export default async function WatchPage({
@@ -42,7 +43,7 @@ export default async function WatchPage({
   const isAdmin = user?.role === "ADMIN";
   if (video.visibility !== "PUBLIC" && !isOwner && !isAdmin) notFound();
 
-  const [myLike, likes, dislikes, subscribed, related] = await Promise.all([
+  const [myLike, likes, dislikes, subscribed, related, myHype, hypeCount] = await Promise.all([
     user
       ? db.videoLike.findUnique({
           where: { userId_videoId: { userId: user.id, videoId: id } },
@@ -58,6 +59,12 @@ export default async function WatchPage({
         })
       : Promise.resolve(null),
     getRelatedVideos(id, 12),
+    user
+      ? db.hype.findUnique({
+          where: { userId_videoId: { userId: user.id, videoId: id } },
+        })
+      : Promise.resolve(null),
+    db.hype.count({ where: { videoId: id } }),
   ]);
 
   return (
@@ -77,15 +84,7 @@ export default async function WatchPage({
             />
           </div>
         ) : (
-          <video
-            controls
-            preload="metadata"
-            poster={video.thumbnailUrl ?? undefined}
-            className="aspect-video w-full rounded-xl bg-black"
-          >
-            <source src={video.videoUrl ?? ""} />
-            Your browser does not support video playback.
-          </video>
+          <VideoPlayer src={video.videoUrl ?? ""} poster={video.thumbnailUrl} />
         )}
 
         <h1 className="mt-4 text-xl font-bold">{video.title}</h1>
@@ -138,6 +137,8 @@ export default async function WatchPage({
             loggedIn={!!user}
             videoUrl={video.videoUrl}
             embedUrl={video.embedUrl}
+            initialHypeCount={hypeCount}
+            initialMyHype={!!myHype}
           />
         </div>
 

@@ -5,12 +5,12 @@ import { fetchEmbedMeta, parseEmbedUrl, PROVIDER_LABELS } from "@/lib/embed";
 import { rateLimit } from "@/lib/rate-limit";
 import { fail, handleError, ok } from "@/lib/api";
 
-const MAX_BULK = 50;
+const MAX_BULK = 100;
 
 export async function POST(req: Request) {
   try {
     const user = await requireUser();
-    const rl = rateLimit(`importbulk:${user.id}`, 12, 60 * 60 * 1000);
+    const rl = rateLimit(`importbulk:${user.id}`, 40, 60 * 60 * 1000);
     if (!rl.ok) return fail("Bulk import limit reached. Try later.", 429);
 
     const body = await req.json();

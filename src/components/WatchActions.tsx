@@ -40,6 +40,23 @@ function DownloadIcon() {
   );
 }
 
+function HypeIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-4 w-4"
+      aria-hidden="true"
+    >
+      <path d="M4.5 16.5c-1.5 1.5-2 5-2 5s3.5-.5 5-2c.8-.8.8-2.2 0-3-.8-.8-2.2-.8-3 0zM12 15l-3-3c.9-2.3 2.4-4.5 4-6 3-3 7-4 9-2 .8-2.5 0-5 0-5s-2.5-.8-5 0c2-2 5-2 5-2s0 3-2 5c1.5 2 .5 6-2 9-1.5 1.6-3.7 3.1-6 4z" />
+    </svg>
+  );
+}
+
 export default function WatchActions({
   videoId,
   initialLikes,
@@ -49,6 +66,8 @@ export default function WatchActions({
   loggedIn,
   videoUrl,
   embedUrl,
+  initialHypeCount,
+  initialMyHype,
 }: {
   videoId: string;
   initialLikes: number;
@@ -58,12 +77,16 @@ export default function WatchActions({
   loggedIn: boolean;
   videoUrl: string | null;
   embedUrl: string | null;
+  initialHypeCount: number;
+  initialMyHype: boolean;
 }) {
   const router = useRouter();
   const dialogs = useDialogs();
   const [likes, setLikes] = useState(initialLikes);
   const [dislikes, setDislikes] = useState(initialDislikes);
   const [myLike, setMyLike] = useState(initialMyLike);
+  const [hypeCount, setHypeCount] = useState(initialHypeCount);
+  const [myHype, setMyHype] = useState(initialMyHype);
   const [msg, setMsg] = useState("");
   const [showReport, setShowReport] = useState(false);
   const [reason, setReason] = useState("SPAM");
@@ -83,6 +106,16 @@ export default function WatchActions({
       setLikes(data.likes);
       setDislikes(data.dislikes);
       setMyLike(next);
+    }
+  }
+
+  async function hype() {
+    if (!loggedIn) return router.push("/login");
+    const res = await fetch(`/api/videos/${videoId}/hype`, { method: "POST" });
+    if (res.ok) {
+      const data = await res.json();
+      setHypeCount(data.count);
+      setMyHype(data.hyped);
     }
   }
 
@@ -131,6 +164,17 @@ export default function WatchActions({
         </button>
       </div>
 
+      {!isOwner && (
+        <button
+          onClick={hype}
+          title="Hype pushes this video up the Hyped section on the home page. You cannot hype your own video."
+          className={`btn-ghost ${myHype ? "!text-[#ffb84d]" : ""}`}
+        >
+          <span className="flex items-center gap-2">
+            <HypeIcon /> {hypeCount}
+          </span>
+        </button>
+      )}
       <button onClick={saveToPlaylist} className="btn-ghost">
         ＋ Save
       </button>

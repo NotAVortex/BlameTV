@@ -14,7 +14,7 @@ export type BrowseChannel = {
 export async function GET(req: Request) {
   try {
     const user = await requireUser();
-    const rl = rateLimit(`browsechannels:${user.id}`, 20, 60 * 60 * 1000);
+    const rl = rateLimit(`browsechannels:${user.id}`, 60, 60 * 60 * 1000);
     if (!rl.ok) return fail("Too many searches. Try later.", 429);
 
     const url = new URL(req.url);

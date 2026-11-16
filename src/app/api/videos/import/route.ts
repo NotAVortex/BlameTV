@@ -8,7 +8,7 @@ import { fail, handleError, ok } from "@/lib/api";
 export async function POST(req: Request) {
   try {
     const user = await requireUser();
-    const rl = rateLimit(`import:${user.id}`, 30, 60 * 60 * 1000);
+    const rl = rateLimit(`import:${user.id}`, 60, 60 * 60 * 1000);
     if (!rl.ok) return fail("Import limit reached. Try later.", 429);
 
     const body = await req.json();

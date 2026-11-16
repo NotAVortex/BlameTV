@@ -29,6 +29,7 @@ model User {
   playlists      Playlist[]
   reports        Report[]  @relation("Reporter")
   notifications  Notification[]
+  hypes          Hype[]
 }
 
 model Video {
@@ -52,6 +53,7 @@ model Video {
   watchHistory  WatchHistory[]
   playlistItems PlaylistItem[]
   reports       Report[]
+  hypes         Hype[]
 
   @@index([ownerId])
   @@index([category, visibility, createdAt])
@@ -160,4 +162,14 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId, read])
+}
+
+model Hype {
+  userId    String
+  videoId   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@id([userId, videoId])
 }
