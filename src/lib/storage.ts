@@ -1,7 +1,7 @@
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, writeFile, unlink } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { validateAnimation } from "./media";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
@@ -125,4 +125,38 @@ export async function saveUpload(
   await mkdir(UPLOAD_DIR, { recursive: true });
   await writeFile(dest, buffer);
   return `/api/files/${name}`;
+}
+
+export async function deleteUpload(url: string | null): Promise<void> {
+  if (!url) return;
+  const s3 = s3Config();
+  if (s3 && url.startsWith(s3.publicBase.replace(/\/$/, "") + "/")) {
+    const key = url.slice(s3.publicBase.replace(/\/$/, "").length + 1);
+    const client = new S3Client({
+      region: s3.region,
+      endpoint: s3.endpoint,
+      forcePathStyle: true,
+      credentials: {
+        accessKeyId: s3.accessKeyId,
+        secretAccessKey: s3.secretAccessKey,
+      },
+    });
+    try {
+      await client.send(new DeleteObjectCommand({ Bucket: s3.bucket, Key: key }));
+    } catch (err) {
+      console.error("S3 delete failed:", err);
+    }
+    return;
+  }
+  if (url.startsWith("/api/files/")) {
+    const name = url.slice("/api/files/".length);
+    if (!/^[a-f0-9-]{36}\.[a-z0-9]+$/i.test(name)) return;
+    const dest = path.join(UPLOAD_DIR, name);
+    if (!dest.startsWith(UPLOAD_DIR + path.sep)) return;
+    try {
+      await unlink(dest);
+    } catch {
+      /* already gone */
+    }
+  }
 }

@@ -15,6 +15,8 @@ export async function GET() {
         displayName: true,
         role: true,
         createdAt: true,
+        avatarUrl: true,
+        bannerUrl: true,
         _count: { select: { videos: true, comments: true } },
       },
     });

@@ -5,12 +5,12 @@ import { fetchEmbedMeta, parseEmbedUrl, PROVIDER_LABELS } from "@/lib/embed";
 import { rateLimit } from "@/lib/rate-limit";
 import { fail, handleError, ok } from "@/lib/api";
 
-const MAX_BULK = 24;
+const MAX_BULK = 50;
 
 export async function POST(req: Request) {
   try {
     const user = await requireUser();
-    const rl = rateLimit(`importbulk:${user.id}`, 5, 60 * 60 * 1000);
+    const rl = rateLimit(`importbulk:${user.id}`, 12, 60 * 60 * 1000);
     if (!rl.ok) return fail("Bulk import limit reached. Try later.", 429);
 
     const body = await req.json();
@@ -22,12 +22,11 @@ export async function POST(req: Request) {
     const created: string[] = [];
     const skipped: number[] = [];
 
-    for (let i = 0; i < urls.length; i++) {
-      const rawUrl = String(urls[i] ?? "");
+    const importOne = async (rawUrl: string, index: number) => {
       const embed = parseEmbedUrl(rawUrl);
       if (!embed) {
-        skipped.push(i);
-        continue;
+        skipped.push(index);
+        return;
       }
       const fetched = await fetchEmbedMeta(embed.provider, rawUrl);
       const providerLabel = PROVIDER_LABELS[embed.provider] ?? embed.provider;
@@ -49,6 +48,12 @@ export async function POST(req: Request) {
         select: { id: true },
       });
       created.push(row.id);
+    };
+
+    const BATCH = 4;
+    for (let start = 0; start < urls.length; start += BATCH) {
+      const batch = urls.slice(start, start + BATCH).map((raw, i) => importOne(String(raw ?? ""), start + i));
+      await Promise.allSettled(batch);
     }
 
     return ok({ created: created.length, ids: created, skipped: skipped.length }, 201);

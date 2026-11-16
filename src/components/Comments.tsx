@@ -5,6 +5,23 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { timeAgo } from "@/components/VideoCard";
 
+function ThumbIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-3.5 w-3.5"
+      aria-hidden="true"
+    >
+      <path d="M7 10v11H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h3zm0 0l4.2-7.4a1.8 1.8 0 0 1 3.3 1.2L13.8 8H19a2 2 0 0 1 2 2.4l-1.6 8A2 2 0 0 1 17.4 20H7" />
+    </svg>
+  );
+}
+
 type CommentData = {
   id: string;
   body: string;
@@ -113,7 +130,7 @@ export default function Comments({
               onClick={() => likeComment(c.id)}
               className={`hover:text-[#f1f1f1] ${likedIds.has(c.id) ? "text-[#3ea6ff]" : ""}`}
             >
-              👍 {c.likes}
+              <ThumbIcon /> {c.likes}
             </button>
             <button
               onClick={() => {

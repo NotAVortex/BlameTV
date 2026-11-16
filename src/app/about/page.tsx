@@ -40,7 +40,7 @@ export default function AboutPage() {
           <li>Every upload requires a rights confirmation checkbox before publishing.</li>
         </ul>
 
-        <h2>👤 Profile customization</h2>
+        <h2>Profile customization</h2>
         <ul>
           <li>Static avatars/banners: JPG, PNG, WebP.</li>
           <li><strong>Animated avatars:</strong> GIF or animated WebP, max 5 seconds (checked server-side).</li>
@@ -48,7 +48,7 @@ export default function AboutPage() {
           <li>Live preview in Settings before you save.</li>
         </ul>
 
-        <h2>🔒 Privacy &amp; security</h2>
+        <h2>Privacy &amp; security</h2>
         <ul>
           <li>Passwords are hashed with bcrypt (cost 12) — even admins cannot read them.</li>
           <li>Sessions use signed JWTs in httpOnly cookies — JavaScript and other sites cannot touch them.</li>
@@ -58,7 +58,7 @@ export default function AboutPage() {
           <li>Export all your data as JSON, or delete your account permanently, from Settings.</li>
         </ul>
 
-        <h2>⚖ Safety &amp; legal</h2>
+        <h2>Safety &amp; legal</h2>
         <ul>
           <li>Report any video or comment with the ⚑ button — admins review the queue.</li>
           <li>
@@ -70,7 +70,7 @@ export default function AboutPage() {
           </li>
         </ul>
 
-        <h2>🛠 For admins</h2>
+        <h2>For admins</h2>
         <ul>
           <li>The first account created becomes an admin automatically.</li>
           <li>The admin panel shows site stats, the report queue, and user role management.</li>

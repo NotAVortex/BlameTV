@@ -57,7 +57,7 @@ export default function HistoryPage() {
       </div>
 
       <p className="mb-6 text-xs text-[#717171]">
-        🔒 Your watch history is private — only you can see it.
+        Your watch history is private — only you can see it.
       </p>
 
       {state === "loading" && <p className="text-sm text-[#aaaaaa]">Loading…</p>}

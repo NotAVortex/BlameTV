@@ -3,6 +3,24 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+function ThumbIcon({ down = false }: { down?: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-4 w-4"
+      aria-hidden="true"
+      style={down ? { transform: "rotate(180deg)" } : undefined}
+    >
+      <path d="M7 10v11H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h3zm0 0l4.2-7.4a1.8 1.8 0 0 1 3.3 1.2L13.8 8H19a2 2 0 0 1 2 2.4l-1.6 8A2 2 0 0 1 17.4 20H7" />
+    </svg>
+  );
+}
+
 export default function WatchActions({
   videoId,
   initialLikes,
@@ -72,14 +90,14 @@ export default function WatchActions({
           onClick={() => like(1)}
           className={`px-4 py-2 text-sm hover:bg-[#3f3f3f] ${myLike === 1 ? "text-[#3ea6ff]" : ""}`}
         >
-          👍 {likes}
+          <ThumbIcon /> {likes}
         </button>
         <span className="h-6 w-px bg-[#3f3f3f]" />
         <button
           onClick={() => like(-1)}
           className={`px-4 py-2 text-sm hover:bg-[#3f3f3f] ${myLike === -1 ? "text-[#ff6b6b]" : ""}`}
         >
-          👎 {dislikes}
+          <ThumbIcon down /> {dislikes}
         </button>
       </div>
 
