@@ -108,7 +108,8 @@ export async function saveUpload(
           ContentType: file.type,
         })
       );
-    } catch {
+    } catch (err) {
+      console.error("S3 upload failed:", err);
       throw new UploadError(
         "Upload storage rejected the file - check the storage settings (bucket, keys, endpoint)"
       );
