@@ -123,6 +123,26 @@ function SidebarContent({
           Sign in to upload videos, build playlists and get a personalized feed.
         </p>
       )}
+      <div className="mt-6 px-3">
+        <span
+          title="BlameTV shows no advertisements and never will"
+          className="inline-flex items-center gap-1.5 rounded-full border border-[#272727] px-2.5 py-1 text-[11px] font-semibold tracking-wide text-[#aaaaaa]"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-3 w-3"
+            aria-hidden="true"
+          >
+            <path d="M4 12l5 5L20 6" />
+          </svg>
+          NO ADS
+        </span>
+      </div>
     </nav>
   );
 }

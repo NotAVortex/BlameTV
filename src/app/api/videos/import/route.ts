@@ -2,6 +2,10 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { videoMetaSchema } from "@/lib/validation";
 import { fetchEmbedMeta, parseEmbedUrl, PROVIDER_LABELS } from "@/lib/embed";
+import {
+  fetchYoutubeChannelMeta,
+  youtubeIdFromEmbedUrl,
+} from "@/lib/youtube-comments";
 import { rateLimit } from "@/lib/rate-limit";
 import { fail, handleError, ok } from "@/lib/api";
 
@@ -23,6 +27,9 @@ export async function POST(req: Request) {
     }
 
     const fetched = await fetchEmbedMeta(embed.provider, rawUrl);
+    const ytId =
+      embed.provider === "YOUTUBE" ? youtubeIdFromEmbedUrl(embed.embedUrl) : null;
+    const channelMeta = ytId ? await fetchYoutubeChannelMeta(ytId) : null;
     const providerLabel = PROVIDER_LABELS[embed.provider] ?? embed.provider;
     const title =
       fetched?.title ??
@@ -48,6 +55,9 @@ export async function POST(req: Request) {
         embedUrl: embed.embedUrl,
         thumbnailUrl: embed.thumbnailUrl ?? fetchedThumbnail(embed.provider, rawUrl),
         source: embed.provider,
+        sourceChannel: fetched?.author ?? channelMeta?.name,
+        sourceChannelUrl: fetched?.authorUrl ?? channelMeta?.url,
+        sourceChannelAvatar: channelMeta?.avatar,
         ownerId: user.id,
       },
       select: { id: true },

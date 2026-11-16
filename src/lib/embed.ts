@@ -140,7 +140,7 @@ export const PROVIDER_LABELS: Record<string, string> = {
 export async function fetchEmbedMeta(
   provider: string,
   originalUrl: string
-): Promise<{ title: string; author: string | null } | null> {
+): Promise<{ title: string; author: string | null; authorUrl: string | null } | null> {
   const make = OEMBED_BY_PROVIDER[provider];
   if (!make) return null;
   try {
@@ -149,13 +149,21 @@ export async function fetchEmbedMeta(
       headers: { "user-agent": "BlameTV/1.0 (+https://blametv.vercel.app)" },
     });
     if (!res.ok) return null;
-    const data = (await res.json()) as { title?: unknown; author_name?: unknown };
+    const data = (await res.json()) as {
+      title?: unknown;
+      author_name?: unknown;
+      author_url?: unknown;
+    };
     if (typeof data.title !== "string" || !data.title.trim()) return null;
     return {
       title: data.title.trim().slice(0, 140),
       author: typeof data.author_name === "string" && data.author_name.trim()
         ? data.author_name.trim().slice(0, 50)
         : null,
+      authorUrl:
+        typeof data.author_url === "string" && /^https:\/\//.test(data.author_url)
+          ? data.author_url.slice(0, 300)
+          : null,
     };
   } catch {
     return null;

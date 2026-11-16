@@ -41,6 +41,9 @@ model Video {
   videoUrl      String?
   embedUrl      String?
   source        String   @default("UPLOAD")
+  sourceChannel      String?
+  sourceChannelUrl   String?
+  sourceChannelAvatar String?
   thumbnailUrl  String?
   visibility    String   @default("PUBLIC")
   durationSec   Int      @default(0)

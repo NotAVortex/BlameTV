@@ -6,7 +6,7 @@ import { getRelatedVideos } from "@/lib/recommend";
 import VideoCard, { formatViews, timeAgo } from "@/components/VideoCard";
 import RecordView from "@/components/RecordView";
 import WatchActions from "@/components/WatchActions";
-import Comments from "@/components/Comments";
+import CommentsTabs from "@/components/CommentsTabs";
 import SubscribeButton from "@/components/SubscribeButton";
 import VideoPlayer from "@/components/VideoPlayer";
 import VerifiedBadge from "@/components/VerifiedBadge";
@@ -89,6 +89,32 @@ export default async function WatchPage({
 
         <h1 className="mt-4 text-xl font-bold">{video.title}</h1>
 
+        {video.sourceChannel && (
+          <a
+            href={
+              video.sourceChannelUrl ??
+              `https://www.youtube.com/results?search_query=${encodeURIComponent(video.sourceChannel)}`
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Visit the original channel that made this video"
+            className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#272727] px-3 py-1 text-xs text-[#aaaaaa] transition-colors hover:bg-[#3f3f3f] hover:text-[#f1f1f1]"
+          >
+            <span className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-[#3d3d3d] text-[10px] font-bold">
+              {video.sourceChannelAvatar ? (
+                <img
+                  src={video.sourceChannelAvatar}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                video.sourceChannel.charAt(0).toUpperCase()
+              )}
+            </span>
+            Originally by {video.sourceChannel}
+          </a>
+        )}
+
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <Link href={`/channel/${video.owner.username}`} className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#3d3d3d] font-bold">
@@ -153,7 +179,25 @@ export default async function WatchPage({
           </div>
         )}
 
-        <Comments videoId={id} loggedIn={!!user} myUsername={user?.username} />
+        <CommentsTabs
+          videoId={id}
+          loggedIn={!!user}
+          myUsername={user?.username}
+          platformLabel={
+            video.embedUrl && /youtube(-nocookie)?\.com|youtu\.be/.test(video.embedUrl)
+              ? "YouTube"
+              : video.embedUrl && /vimeo\.com/.test(video.embedUrl)
+                ? "Vimeo"
+                : video.embedUrl && /dailymotion\.com/.test(video.embedUrl)
+                  ? "Dailymotion"
+                  : video.embedUrl && /twitch\.tv/.test(video.embedUrl)
+                    ? "Twitch"
+                    : "Streamable"
+          }
+          platformSupported={
+            !!video.embedUrl && /youtube(-nocookie)?\.com|youtu\.be/.test(video.embedUrl)
+          }
+        />
       </div>
 
       <aside className="min-w-0">

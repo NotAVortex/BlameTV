@@ -30,10 +30,16 @@ type AdminUser = {
 type AdminVideo = {
   id: string;
   title: string;
+  thumbnailUrl: string | null;
   source: string;
   visibility: string;
   createdAt: string;
-  owner: { id: string; username: string; displayName: string };
+  owner: {
+    id: string;
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+  };
   _count: { likes: number; comments: number };
 };
 
@@ -280,10 +286,28 @@ export default function AdminPage() {
         <div className="space-y-2">
           {videos.map((v) => (
             <div key={v.id} className="card flex flex-wrap items-center gap-3 p-3 text-sm">
+              <Link href={`/watch/${v.id}`} className="shrink-0">
+                <span className="block h-10 w-[72px] overflow-hidden rounded-md bg-[#212121]">
+                  {v.thumbnailUrl && (
+                    <img src={v.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                  )}
+                </span>
+              </Link>
               <Link href={`/watch/${v.id}`} className="min-w-0 flex-1 truncate font-medium text-[#3ea6ff] hover:underline">
                 {v.title}
               </Link>
-              <Link href={`/channel/${v.owner.username}`} className="text-xs text-[#aaaaaa] hover:underline">
+              <Link
+                href={`/channel/${v.owner.username}`}
+                title={`Open ${v.owner.displayName}'s account`}
+                className="flex shrink-0 items-center gap-2 text-xs text-[#aaaaaa] hover:underline"
+              >
+                <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-[#3d3d3d] text-[10px] font-bold">
+                  {v.owner.avatarUrl ? (
+                    <img src={v.owner.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    v.owner.displayName.charAt(0).toUpperCase()
+                  )}
+                </span>
                 @{v.owner.username}
               </Link>
               <span className="rounded-full bg-[#272727] px-2 py-0.5 text-xs text-[#aaaaaa]">

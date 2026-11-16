@@ -63,6 +63,9 @@ export async function getTrending(limit = 24): Promise<ScoredVideo[]> {
       tags: true,
       category: true,
       owner: { select: { username: true, displayName: true, avatarUrl: true } },
+      sourceChannel: true,
+      sourceChannelUrl: true,
+      sourceChannelAvatar: true,
     },
   });
 
@@ -95,6 +98,9 @@ export async function getRelatedVideos(
       category: true,
       ownerId: true,
       owner: { select: { username: true, displayName: true, avatarUrl: true } },
+      sourceChannel: true,
+      sourceChannelUrl: true,
+      sourceChannelAvatar: true,
     },
   });
 
@@ -181,6 +187,9 @@ export async function getPersonalFeed(
       category: true,
       ownerId: true,
       owner: { select: { username: true, displayName: true, avatarUrl: true } },
+      sourceChannel: true,
+      sourceChannelUrl: true,
+      sourceChannelAvatar: true,
     },
   });
 
@@ -222,6 +231,9 @@ export async function getRandomFeed(limit = 12): Promise<ScoredVideo[]> {
       views: true,
       createdAt: true,
       owner: { select: { username: true, displayName: true, avatarUrl: true } },
+      sourceChannel: true,
+      sourceChannelUrl: true,
+      sourceChannelAvatar: true,
     },
   });
   return shuffle(videos);

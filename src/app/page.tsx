@@ -29,6 +29,9 @@ export default async function HomePage({
         views: true,
         createdAt: true,
         owner: { select: { username: true, displayName: true, avatarUrl: true } },
+      sourceChannel: true,
+      sourceChannelUrl: true,
+      sourceChannelAvatar: true,
       },
     });
 
@@ -57,6 +60,9 @@ export default async function HomePage({
         views: true,
         createdAt: true,
         owner: { select: { username: true, displayName: true, avatarUrl: true } },
+      sourceChannel: true,
+      sourceChannelUrl: true,
+      sourceChannelAvatar: true,
       },
     }),
   ]);

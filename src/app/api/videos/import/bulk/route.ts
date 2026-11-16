@@ -18,6 +18,18 @@ export async function POST(req: Request) {
     if (!Array.isArray(urls) || urls.length === 0 || urls.length > MAX_BULK) {
       return fail(`Provide 1 to ${MAX_BULK} video links`, 422);
     }
+    const channelName =
+      typeof body?.channelName === "string" && body.channelName.trim()
+        ? body.channelName.trim().slice(0, 100)
+        : null;
+    const channelUrl =
+      typeof body?.channelUrl === "string" && /^https:\/\//.test(body.channelUrl)
+        ? body.channelUrl.slice(0, 300)
+        : null;
+    const channelAvatar =
+      typeof body?.channelAvatar === "string" && /^https:\/\//.test(body.channelAvatar)
+        ? body.channelAvatar.slice(0, 500)
+        : null;
 
     const created: string[] = [];
     const skipped: number[] = [];
@@ -43,6 +55,9 @@ export async function POST(req: Request) {
           embedUrl: embed.embedUrl,
           thumbnailUrl: embed.thumbnailUrl,
           source: embed.provider,
+          sourceChannel: fetched?.author ?? channelName,
+          sourceChannelUrl: fetched?.authorUrl ?? channelUrl,
+          sourceChannelAvatar: channelAvatar,
           ownerId: user.id,
         },
         select: { id: true },

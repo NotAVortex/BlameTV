@@ -40,6 +40,9 @@ export default async function SubscriptionsPage() {
             views: true,
             createdAt: true,
             owner: { select: { username: true, displayName: true, avatarUrl: true } },
+      sourceChannel: true,
+      sourceChannelUrl: true,
+      sourceChannelAvatar: true,
           },
         })
       : [];

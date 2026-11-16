@@ -8,6 +8,9 @@ export type VideoCardData = {
   views: number;
   createdAt: Date | string;
   owner: { username: string; displayName: string; avatarUrl?: string | null };
+  sourceChannel?: string | null;
+  sourceChannelUrl?: string | null;
+  sourceChannelAvatar?: string | null;
 };
 
 export function formatDuration(sec: number): string {
@@ -87,12 +90,46 @@ export default function VideoCard({ video }: { video: VideoCardData }) {
           <Link href={`/watch/${video.id}`}>
             <h3 className="line-clamp-2 text-sm font-semibold leading-5">{video.title}</h3>
           </Link>
-          <Link
-            href={`/channel/${video.owner.username}`}
-            className="mt-1 block text-xs text-[#aaaaaa] hover:text-[#f1f1f1]"
-          >
-            {video.owner.displayName}
-          </Link>
+          {video.sourceChannel ? (
+            <>
+              <a
+                href={
+                  video.sourceChannelUrl ??
+                  `https://www.youtube.com/results?search_query=${encodeURIComponent(video.sourceChannel)}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                title={`Watch more from ${video.sourceChannel} on their original channel`}
+                className="mt-1 flex items-center gap-1.5 text-xs font-medium text-[#f1f1f1] hover:text-[#3ea6ff]"
+              >
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#3d3d3d] text-[8px] font-bold">
+                  {video.sourceChannelAvatar ? (
+                    <img
+                      src={video.sourceChannelAvatar}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    video.sourceChannel.charAt(0).toUpperCase()
+                  )}
+                </span>
+                <span className="truncate">{video.sourceChannel}</span>
+              </a>
+              <Link
+                href={`/channel/${video.owner.username}`}
+                className="mt-0.5 block text-[11px] text-[#717171] hover:text-[#aaaaaa]"
+              >
+                Imported by {video.owner.displayName}
+              </Link>
+            </>
+          ) : (
+            <Link
+              href={`/channel/${video.owner.username}`}
+              className="mt-1 block text-xs text-[#aaaaaa] hover:text-[#f1f1f1]"
+            >
+              {video.owner.displayName}
+            </Link>
+          )}
           <p className="text-xs text-[#aaaaaa]">
             {formatViews(video.views)} views · {timeAgo(video.createdAt)}
           </p>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ImportedCreators from "@/components/ImportedCreators";
 
 type BrowseVideo = { url: string; title: string; thumbnail: string | null };
 type BrowseChannel = {
@@ -39,6 +40,7 @@ export default function BrowsePage() {
   const [failed, setFailed] = useState(0);
   const [error, setError] = useState("");
   const [doneInfo, setDoneInfo] = useState("");
+  const [view, setView] = useState<"import" | "creators">("import");
 
   useEffect(() => {
     fetch("/api/me")
@@ -55,13 +57,21 @@ export default function BrowsePage() {
 
   async function search(e: React.FormEvent) {
     e.preventDefault();
+    await runSearch(query, platform, mode);
+  }
+
+  async function runSearch(
+    raw: string,
+    platformOverride = platform,
+    modeOverride = mode,
+  ) {
     setError("");
-    if (!query.trim()) return setError("Type a username or search term first");
+    if (!raw.trim()) return setError("Type a username or search term first");
     setSearching(true);
     setResults(null);
 
-    if (mode === "playlist") {
-      const res = await fetch(`/api/browse?playlist=${encodeURIComponent(query.trim())}`);
+    if (modeOverride === "playlist") {
+      const res = await fetch(`/api/browse?playlist=${encodeURIComponent(raw.trim())}`);
       setSearching(false);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) return setError(data.error ?? "Playlist lookup failed");
@@ -73,9 +83,9 @@ export default function BrowsePage() {
       }
       setPendingVideos(list);
       setPending({
-        id: query.trim(),
+        id: raw.trim(),
         name: `Playlist (${list.length} videos)`,
-        query: query.trim(),
+        query: raw.trim(),
         avatar: list[0]?.thumbnail ?? null,
         platform: "youtube",
       });
@@ -85,8 +95,8 @@ export default function BrowsePage() {
       return;
     }
 
-    if (platform === "blametv") {
-      const res = await fetch(`/api/browse/channels?platform=blametv&q=${encodeURIComponent(query.trim())}`);
+    if (platformOverride === "blametv") {
+      const res = await fetch(`/api/browse/channels?platform=blametv&q=${encodeURIComponent(raw.trim())}`);
       setSearching(false);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) return setError(data.error ?? "Search failed");
@@ -96,7 +106,7 @@ export default function BrowsePage() {
       return;
     }
 
-    const res = await fetch(`/api/browse/channels?platform=${platform}&q=${encodeURIComponent(query.trim())}`);
+    const res = await fetch(`/api/browse/channels?platform=${platformOverride}&q=${encodeURIComponent(raw.trim())}`);
     setSearching(false);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return setError(data.error ?? "Search failed");
@@ -104,6 +114,18 @@ export default function BrowsePage() {
     setResults(list);
     if (list.length === 0)
       setError("No creators found. Try a different spelling or search for their exact username.");
+  }
+
+  function importMoreFrom(creator: { name: string; url: string | null }) {
+    setError("");
+    setView("import");
+    setPlatform("youtube");
+    setMode("channel");
+    setResults(null);
+    setStep("search");
+    const target = creator.url ?? creator.name;
+    setQuery(target);
+    void runSearch(target, "youtube", "channel");
   }
 
   function pickCreator(c: BrowseChannel) {
@@ -155,7 +177,12 @@ export default function BrowsePage() {
       const res = await fetch("/api/videos/import/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ urls: chunk }),
+        body: JSON.stringify({
+          urls: chunk,
+          channelName: pending.name,
+          channelUrl: pending.platform === "youtube" ? pending.query : null,
+          channelAvatar: pending.avatar,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -198,6 +225,40 @@ export default function BrowsePage() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
       <h1 className="mb-2 text-2xl font-bold">Channel browser</h1>
+      <div className="mb-6 flex gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            setView("import");
+            setError("");
+          }}
+          className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+            view === "import"
+              ? "bg-[#f1f1f1] text-[#0f0f0f]"
+              : "bg-[#272727] text-[#aaaaaa] hover:bg-[#3f3f3f]"
+          }`}
+        >
+          Import videos
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setView("creators");
+            setError("");
+          }}
+          className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+            view === "creators"
+              ? "bg-[#f1f1f1] text-[#0f0f0f]"
+              : "bg-[#272727] text-[#aaaaaa] hover:bg-[#3f3f3f]"
+          }`}
+        >
+          Imported YouTubers
+        </button>
+      </div>
+      {view === "creators" ? (
+        <ImportedCreators onImportMore={importMoreFrom} />
+      ) : (
+      <>
       <p className="mb-6 text-sm text-[#aaaaaa]">
         Search for a creator on a supported platform, confirm it is the right one, and BlameTV
         embeds all of their public videos automatically. Titles and descriptions are filled in for
@@ -381,6 +442,8 @@ export default function BrowsePage() {
             </button>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );

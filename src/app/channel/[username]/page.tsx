@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import VideoCard, { timeAgo } from "@/components/VideoCard";
 import SubscribeButton from "@/components/SubscribeButton";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import ChannelVideoManager from "@/components/ChannelVideoManager";
 
 export default async function ChannelPage({
   params,
@@ -28,11 +29,12 @@ export default async function ChannelPage({
     },
   });
   if (!channel) notFound();
+  const isOwnChannel = viewer?.id === channel.id;
 
   const videos = await db.video.findMany({
     where: { ownerId: channel.id, visibility: "PUBLIC" },
     orderBy: { createdAt: "desc" },
-    take: 48,
+    take: 500,
     select: {
       id: true,
       title: true,
@@ -41,6 +43,9 @@ export default async function ChannelPage({
       views: true,
       createdAt: true,
       owner: { select: { username: true, displayName: true, avatarUrl: true } },
+      sourceChannel: true,
+      sourceChannelUrl: true,
+      sourceChannelAvatar: true,
     },
   });
 
@@ -87,16 +92,25 @@ export default async function ChannelPage({
         />
       </div>
 
-      <h2 className="mb-4 mt-10 text-lg font-semibold">Videos</h2>
-      {videos.length === 0 ? (
-        <p className="text-sm text-[#aaaaaa]">This channel has no public videos yet.</p>
-      ) : (
-        <div className="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {videos.map((v) => (
-            <VideoCard key={v.id} video={v} />
-          ))}
-        </div>
-      )}
+      <div className="mt-10">
+        {videos.length === 0 ? (
+          <>
+            <h2 className="mb-4 text-lg font-semibold">Videos</h2>
+            <p className="text-sm text-[#aaaaaa]">This channel has no public videos yet.</p>
+          </>
+        ) : isOwnChannel ? (
+          <ChannelVideoManager videos={videos} />
+        ) : (
+          <>
+            <h2 className="mb-4 text-lg font-semibold">Videos</h2>
+            <div className="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {videos.map((v) => (
+                <VideoCard key={v.id} video={v} />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -162,19 +162,22 @@ export default function WatchActions({
         >
           <ThumbIcon down /> {dislikes}
         </button>
+        {!isOwner && (
+          <>
+            <span className="h-6 w-px bg-[#3f3f3f]" />
+            <button
+              onClick={hype}
+              title="Hype pushes this video up the Hyped section on the home page. You cannot hype your own video."
+              className={`px-4 py-2 text-sm hover:bg-[#3f3f3f] ${myHype ? "text-[#ffb84d]" : ""}`}
+            >
+              <span className="flex items-center gap-2">
+                <HypeIcon /> {hypeCount}
+              </span>
+            </button>
+          </>
+        )}
       </div>
 
-      {!isOwner && (
-        <button
-          onClick={hype}
-          title="Hype pushes this video up the Hyped section on the home page. You cannot hype your own video."
-          className={`btn-ghost ${myHype ? "!text-[#ffb84d]" : ""}`}
-        >
-          <span className="flex items-center gap-2">
-            <HypeIcon /> {hypeCount}
-          </span>
-        </button>
-      )}
       <button onClick={saveToPlaylist} className="btn-ghost">
         ＋ Save
       </button>

@@ -12,10 +12,18 @@ export async function GET() {
       select: {
         id: true,
         title: true,
+        thumbnailUrl: true,
         source: true,
         visibility: true,
         createdAt: true,
-        owner: { select: { id: true, username: true, displayName: true } },
+        owner: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+          },
+        },
         _count: { select: { likes: true, comments: true } },
       },
     });
