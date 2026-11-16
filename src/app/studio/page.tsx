@@ -83,7 +83,7 @@ export default function StudioPage() {
       <h2 className="mb-4 text-lg font-semibold">Your videos</h2>
       {data.videos.length === 0 ? (
         <p className="text-sm text-[#aaaaaa]">
-          No videos yet. <Link href="/upload" className="text-[#3ea6ff] hover:underline">Upload one</Link>.
+          No videos yet. <Link href="/upload" className="text-[#3ea6ff] hover:underline">Add one</Link>.
         </p>
       ) : (
         <div className="space-y-3">

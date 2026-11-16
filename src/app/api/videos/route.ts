@@ -1,9 +1,6 @@
 import { db, insensitive } from "@/lib/db";
-import { getSessionUser, requireUser } from "@/lib/auth";
-import { videoMetaSchema } from "@/lib/validation";
-import { saveUpload, UploadError } from "@/lib/storage";
-import { rateLimit } from "@/lib/rate-limit";
-import { fail, handleError, ok } from "@/lib/api";
+import { getSessionUser } from "@/lib/auth";
+import { handleError, ok } from "@/lib/api";
 
 export async function GET(req: Request) {
   try {
@@ -57,46 +54,6 @@ export async function GET(req: Request) {
     ]);
 
     return ok({ videos, total, page, pageSize });
-  } catch (err) {
-    return handleError(err);
-  }
-}
-
-export async function POST(req: Request) {
-  try {
-    const user = await requireUser();
-    const rl = rateLimit(`upload:${user.id}`, 20, 60 * 60 * 1000);
-    if (!rl.ok) return fail("Upload limit reached. Try later.", 429);
-
-    const form = await req.formData();
-    const video = form.get("video");
-    const thumbnail = form.get("thumbnail");
-    if (!(video instanceof File)) return fail("Video file required");
-
-    const meta = videoMetaSchema.parse({
-      title: form.get("title"),
-      description: form.get("description") ?? "",
-      category: form.get("category") ?? "Other",
-      tags: form.get("tags") ?? "",
-      visibility: form.get("visibility") ?? "PUBLIC",
-    });
-
-    try {
-      const videoUrl = await saveUpload(video, "video");
-      const thumbnailUrl =
-        thumbnail instanceof File && thumbnail.size > 0
-          ? await saveUpload(thumbnail, "image")
-          : null;
-
-      const created = await db.video.create({
-        data: { ...meta, videoUrl, thumbnailUrl, ownerId: user.id },
-        select: { id: true },
-      });
-      return ok({ id: created.id }, 201);
-    } catch (e) {
-      if (e instanceof UploadError) return fail(e.message, 413);
-      throw e;
-    }
   } catch (err) {
     return handleError(err);
   }

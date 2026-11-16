@@ -1,7 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import AppShell from "@/components/AppShell";
 import { getSessionUser, listStashedAccounts } from "@/lib/auth";
+
+export const viewport: Viewport = {
+  themeColor: "#0f0f0f",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(

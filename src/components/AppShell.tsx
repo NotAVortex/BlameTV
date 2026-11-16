@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { DialogProvider } from "@/components/dialogs";
+import WelcomeModal from "@/components/WelcomeModal";
 import type { SessionUser, StashedAccount } from "@/lib/auth";
 
 const ICON_PATHS: Record<string, string> = {
@@ -56,7 +57,7 @@ const MAIN_NAV: NavItem[] = [
 ];
 
 const LIBRARY_NAV: NavItem[] = [
-  { href: "/upload", label: "Upload", icon: "upload" },
+  { href: "/upload", label: "Add video", icon: "upload" },
   { href: "/browse", label: "Browse channels", icon: "browse" },
   { href: "/history", label: "History", icon: "history" },
   { href: "/playlists", label: "Playlists", icon: "playlists" },
@@ -118,9 +119,20 @@ function SidebarContent({
       )}
       <div className="my-3 border-t border-[#272727]" />
       {EXTRA_NAV.map(item)}
+      <button
+        type="button"
+        onClick={() => {
+          window.dispatchEvent(new Event("blametv:welcome"));
+          onNavigate?.();
+        }}
+        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-[#aaaaaa] transition-colors duration-150 hover:bg-[#1f1f1f] hover:text-white"
+      >
+        <Icon name="about" />
+        What is BlameTV?
+      </button>
       {!user && (
         <p className="mt-4 px-3 text-xs leading-5 text-[#717171]">
-          Sign in to upload videos, build playlists and get a personalized feed.
+          Sign in to add videos, build playlists and get a personalized feed.
         </p>
       )}
       <div className="mt-6 px-3">
@@ -312,7 +324,7 @@ export default function AppShell({
             <>
               <Link href="/upload" className="btn-ghost !py-1.5 text-xs">
                 <Icon name="upload" className="h-4 w-4" />
-                <span className="hidden sm:inline">Upload</span>
+                <span className="hidden sm:inline">Add video</span>
               </Link>
               <div className="relative" ref={menuRef}>
                 <button
@@ -459,6 +471,7 @@ export default function AppShell({
           </div>
         </footer>
       </main>
+      <WelcomeModal />
     </DialogProvider>
   );
 }

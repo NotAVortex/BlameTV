@@ -37,7 +37,7 @@ export default function AboutPage() {
         <ul>
           <li><strong>Upload file:</strong> MP4/WebM/OGG/MOV, stored on the server and streamed with range requests (instant seeking).</li>
           <li><strong>Import from link:</strong> paste a YouTube, Vimeo, Dailymotion, Twitch or Streamable URL. The video streams from the original platform in an embedded player — zero storage used.</li>
-          <li>Every upload requires a rights confirmation checkbox before publishing.</li>
+          <li>Every import requires a rights confirmation checkbox before publishing. BlameTV is embeds-only: videos stream from the original platform, so there are no file uploads.</li>
         </ul>
 
         <h2>Profile customization</h2>
