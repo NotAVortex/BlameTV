@@ -121,3 +121,43 @@ export function parseEmbedUrl(raw: string): ParsedEmbed | null {
 
   return null;
 }
+
+const OEMBED_BY_PROVIDER: Record<string, (url: string) => string> = {
+  YOUTUBE: (url) => `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`,
+  VIMEO: (url) => `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(url)}`,
+  DAILYMOTION: (url) => `https://www.dailymotion.com/services/oembed?url=${encodeURIComponent(url)}`,
+  STREAMABLE: (url) => `https://api.streamable.com/oembed.json?url=${encodeURIComponent(url)}`,
+};
+
+export const PROVIDER_LABELS: Record<string, string> = {
+  YOUTUBE: "YouTube",
+  VIMEO: "Vimeo",
+  DAILYMOTION: "Dailymotion",
+  TWITCH: "Twitch",
+  STREAMABLE: "Streamable",
+};
+
+export async function fetchEmbedMeta(
+  provider: string,
+  originalUrl: string
+): Promise<{ title: string; author: string | null } | null> {
+  const make = OEMBED_BY_PROVIDER[provider];
+  if (!make) return null;
+  try {
+    const res = await fetch(make(originalUrl), {
+      signal: AbortSignal.timeout(6000),
+      headers: { "user-agent": "BlameTV/1.0 (+https://blametv.vercel.app)" },
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { title?: unknown; author_name?: unknown };
+    if (typeof data.title !== "string" || !data.title.trim()) return null;
+    return {
+      title: data.title.trim().slice(0, 140),
+      author: typeof data.author_name === "string" && data.author_name.trim()
+        ? data.author_name.trim().slice(0, 50)
+        : null,
+    };
+  } catch {
+    return null;
+  }
+}

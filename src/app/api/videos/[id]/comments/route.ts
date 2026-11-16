@@ -75,12 +75,14 @@ export async function POST(
     });
     if (!video) return fail("Not found", 404);
 
+    let parentId: string | null = null;
     if (data.parentId) {
       const parent = await db.comment.findUnique({
         where: { id: data.parentId },
-        select: { id: true, videoId: true },
+        select: { id: true, videoId: true, parentId: true },
       });
       if (!parent || parent.videoId !== id) return fail("Invalid parent comment");
+      parentId = parent.parentId ?? parent.id;
     }
 
     const comment = await db.comment.create({
@@ -88,7 +90,7 @@ export async function POST(
         body: data.body,
         videoId: id,
         authorId: user.id,
-        parentId: data.parentId ?? null,
+        parentId: parentId ?? null,
       },
       select: { id: true },
     });

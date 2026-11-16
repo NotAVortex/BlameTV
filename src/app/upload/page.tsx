@@ -197,7 +197,27 @@ export default function UploadPage() {
             </p>
           </div>
 
-          <MetaFields />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium">Category</label>
+              <select name="category" className="input">
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">Visibility</label>
+              <select name="visibility" className="input">
+                <option value="PUBLIC">Public</option>
+                <option value="UNLISTED">Unlisted</option>
+                <option value="PRIVATE">Private</option>
+              </select>
+            </div>
+          </div>
+          <p className="text-xs text-[#717171]">
+            Title and description are filled in automatically from the video itself.
+          </p>
 
           <label className="flex items-start gap-2 text-sm">
             <input

@@ -23,6 +23,10 @@ const ICON_PATHS: Record<string, string> = {
   menu: "M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5",
   search:
     "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z",
+  browse:
+    "M12 21a9 9 0 100-18 9 9 0 000 18zM14.8 9.2l-1.7 4-4 1.6 1.7-4 4-1.6z",
+  subs:
+    "M6 4.5v11.25A2.25 2.25 0 008.25 18h7.5a2.25 2.25 0 002.25-2.25V4.5M3 4.5v11.25A4.5 4.5 0 007.5 20.25h9a4.5 4.5 0 004.5-4.5V4.5M10.5 9l3 2.25-3 2.25V9z",
   play: "M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z",
 };
 
@@ -45,10 +49,14 @@ function Icon({ name, className = "h-5 w-5" }: { name: string; className?: strin
 
 type NavItem = { href: string; label: string; icon: string };
 
-const MAIN_NAV: NavItem[] = [{ href: "/", label: "Home", icon: "home" }];
+const MAIN_NAV: NavItem[] = [
+  { href: "/", label: "Home", icon: "home" },
+  { href: "/subscriptions", label: "Subscriptions", icon: "subs" },
+];
 
 const LIBRARY_NAV: NavItem[] = [
   { href: "/upload", label: "Upload", icon: "upload" },
+  { href: "/browse", label: "Browse channels", icon: "browse" },
   { href: "/history", label: "History", icon: "history" },
   { href: "/playlists", label: "Playlists", icon: "playlists" },
   { href: "/studio", label: "Studio", icon: "studio" },
@@ -165,7 +173,14 @@ export default function AppShell({
           <Icon name="menu" />
         </button>
         <Logo />
-        <form onSubmit={search} className="mx-auto flex w-full max-w-xl">
+        <Link
+          href="/search"
+          aria-label="Search"
+          className="ml-auto rounded-full p-2 text-[#aaaaaa] transition-colors hover:bg-[#272727] hover:text-white sm:hidden"
+        >
+          <Icon name="search" />
+        </Link>
+        <form onSubmit={search} className="mx-auto hidden w-full max-w-xl sm:flex">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -194,7 +209,11 @@ export default function AppShell({
                   aria-label="Account menu"
                   className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[#3ea6ff] text-sm font-bold text-black transition-transform hover:scale-105"
                 >
-                  {user.displayName.charAt(0).toUpperCase()}
+                  {user.avatarUrl ? (
+                    <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    user.displayName.charAt(0).toUpperCase()
+                  )}
                 </button>
                 {menuOpen && (
                   <div className="anim-fade-in absolute right-0 mt-2 w-52 overflow-hidden rounded-xl border border-[#272727] bg-[#212121] py-2 shadow-xl">

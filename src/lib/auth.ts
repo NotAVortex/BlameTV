@@ -14,6 +14,7 @@ export type SessionUser = {
   username: string;
   displayName: string;
   role: string;
+  avatarUrl: string | null;
 };
 
 export async function createSession(userId: string) {
@@ -53,6 +54,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
         username: true,
         displayName: true,
         role: true,
+        avatarUrl: true,
       },
     });
     return user;
