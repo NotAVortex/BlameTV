@@ -2,7 +2,11 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { videoMetaSchema } from "@/lib/validation";
 import { fetchEmbedMeta, parseEmbedUrl, PROVIDER_LABELS } from "@/lib/embed";
-import { detectYoutubeShort, youtubeIdFromEmbedUrl } from "@/lib/youtube-comments";
+import {
+  detectYoutubeShort,
+  youtubeChannelKey,
+  youtubeIdFromEmbedUrl,
+} from "@/lib/youtube-comments";
 import { rateLimit } from "@/lib/rate-limit";
 import { fail, handleError, ok } from "@/lib/api";
 
@@ -34,6 +38,7 @@ export async function POST(req: Request) {
 
     const created: string[] = [];
     const skipped: number[] = [];
+    let blocked = 0;
 
     const importOne = async (rawUrl: string, index: number) => {
       const embed = parseEmbedUrl(rawUrl);
@@ -47,6 +52,20 @@ export async function POST(req: Request) {
         fetchEmbedMeta(embed.provider, rawUrl),
         ytId ? detectYoutubeShort(ytId) : Promise.resolve(false),
       ]);
+      const lockKeys = [
+        youtubeChannelKey(fetched?.authorUrl),
+        youtubeChannelKey(channelUrl),
+      ].filter((k): k is string => Boolean(k));
+      if (lockKeys.length > 0) {
+        const lock = await db.lockedChannel.findFirst({
+          where: { channelKey: { in: lockKeys }, ownerId: { not: user.id } },
+          select: { id: true },
+        });
+        if (lock) {
+          blocked += 1;
+          return;
+        }
+      }
       const providerLabel = PROVIDER_LABELS[embed.provider] ?? embed.provider;
       const meta = videoMetaSchema.parse({
         title: fetched?.title ?? `Video from ${providerLabel}`,
@@ -78,7 +97,10 @@ export async function POST(req: Request) {
       await Promise.allSettled(batch);
     }
 
-    return ok({ created: created.length, ids: created, skipped: skipped.length }, 201);
+    return ok(
+      { created: created.length, ids: created, skipped: skipped.length, blocked },
+      201
+    );
   } catch (err) {
     return handleError(err);
   }

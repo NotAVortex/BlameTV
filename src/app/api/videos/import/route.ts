@@ -5,6 +5,7 @@ import { fetchEmbedMeta, parseEmbedUrl, PROVIDER_LABELS } from "@/lib/embed";
 import {
   detectYoutubeShort,
   fetchYoutubeChannelMeta,
+  youtubeChannelKey,
   youtubeIdFromEmbedUrl,
 } from "@/lib/youtube-comments";
 import { rateLimit } from "@/lib/rate-limit";
@@ -34,6 +35,23 @@ export async function POST(req: Request) {
       ytId ? fetchYoutubeChannelMeta(ytId) : Promise.resolve(null),
       ytId ? detectYoutubeShort(ytId) : Promise.resolve(false),
     ]);
+
+    const lockKeys = [
+      youtubeChannelKey(channelMeta?.url),
+      youtubeChannelKey(fetched?.authorUrl),
+    ].filter((k): k is string => Boolean(k));
+    if (lockKeys.length > 0) {
+      const lock = await db.lockedChannel.findFirst({
+        where: { channelKey: { in: lockKeys }, ownerId: { not: user.id } },
+        select: { id: true },
+      });
+      if (lock) {
+        return fail(
+          "This YouTube channel is locked by its owner. Only they can import videos from it.",
+          403
+        );
+      }
+    }
     const providerLabel = PROVIDER_LABELS[embed.provider] ?? embed.provider;
     const title =
       fetched?.title ??

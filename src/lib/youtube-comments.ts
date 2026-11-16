@@ -282,3 +282,12 @@ export async function detectYoutubeShort(videoId: string): Promise<boolean> {
     return false;
   }
 }
+
+export function youtubeChannelKey(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const id = /youtube\.com\/channel\/(UC[A-Za-z0-9_-]{20,})/.exec(url);
+  if (id) return id[1];
+  const handle = /youtube\.com\/@([A-Za-z0-9._-]{3,40})/.exec(url);
+  if (handle) return `@${handle[1].toLowerCase()}`;
+  return null;
+}

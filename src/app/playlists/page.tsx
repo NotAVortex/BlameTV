@@ -8,6 +8,7 @@ import { useDialogs } from "@/components/dialogs";
 type Playlist = {
   id: string;
   name: string;
+  isPublic: boolean;
   createdAt: string;
   items: { video: { id: string; title: string; thumbnailUrl: string | null; durationSec: number } }[];
 };
@@ -43,6 +44,18 @@ export default function PlaylistsPage() {
       setName("");
       const d = await fetch("/api/me/playlists").then((r) => r.json());
       setPlaylists(d.playlists ?? []);
+    }
+  }
+
+  async function togglePublic(p: Playlist) {
+    const next = !p.isPublic;
+    const res = await fetch("/api/me/playlists", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: p.id, isPublic: next }),
+    });
+    if (res.ok) {
+      setPlaylists((ps) => ps.map((x) => (x.id === p.id ? { ...x, isPublic: next } : x)));
     }
   }
 
@@ -97,13 +110,31 @@ export default function PlaylistsPage() {
                 {p.name}{" "}
                 <span className="text-xs font-normal text-[#aaaaaa]">({p.items.length} videos)</span>
               </h2>
-              <button
-                onClick={() => removePlaylist(p.id)}
-                className="btn-ghost !py-1 text-xs !text-[#ff6b6b]"
-              >
-                Delete playlist
-              </button>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs ${
+                    p.isPublic ? "bg-[#1b3a52] text-[#3ea6ff]" : "bg-[#272727] text-[#aaaaaa]"
+                  }`}
+                >
+                  {p.isPublic ? "Public" : "Private"}
+                </span>
+                <button onClick={() => togglePublic(p)} className="btn-ghost !py-1 text-xs">
+                  {p.isPublic ? "Make private" : "Make public"}
+                </button>
+                <button
+                  onClick={() => removePlaylist(p.id)}
+                  className="btn-ghost !py-1 text-xs !text-[#ff6b6b]"
+                >
+                  Delete playlist
+                </button>
+              </div>
             </div>
+            {p.isPublic && p.items.length > 0 && (
+              <p className="mb-3 text-xs text-[#717171]">
+                Public playlists show a next-videos panel on the watch page. Open the first video
+                and share the link — anyone with it can watch the whole playlist in order.
+              </p>
+            )}
             {p.items.length === 0 ? (
               <p className="text-xs text-[#aaaaaa]">Empty playlist.</p>
             ) : (

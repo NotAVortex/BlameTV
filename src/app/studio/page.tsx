@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { formatViews, timeAgo } from "@/components/VideoCard";
 import { useDialogs } from "@/components/dialogs";
+import LockedChannels from "@/components/LockedChannels";
 
 type StudioVideo = {
   id: string;
@@ -23,7 +24,7 @@ type StudioComment = {
   video: { id: string; title: string };
 };
 
-type Tab = "overview" | "videos" | "comments";
+type Tab = "overview" | "videos" | "comments" | "locked";
 
 export default function StudioPage() {
   const dialogs = useDialogs();
@@ -103,6 +104,7 @@ export default function StudioPage() {
     { id: "overview", label: "Overview" },
     { id: "videos", label: `Videos (${data.videos.length})` },
     { id: "comments", label: `Comments (${data.recentComments.length})` },
+    { id: "locked", label: "Locked channels" },
   ];
 
   const topVideos = [...data.videos].sort((a, b) => b.views - a.views).slice(0, 8);
@@ -271,6 +273,8 @@ export default function StudioPage() {
           )}
         </>
       )}
+
+      {tab === "locked" && <LockedChannels />}
 
       {tab === "comments" && (
         <>

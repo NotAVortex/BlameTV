@@ -183,7 +183,8 @@ export default function BrowsePage() {
           query = `@${raw}`;
           name = `@${raw}`;
         } else {
-          return setError("Paste a YouTube video link, a channel URL, or an @handle");
+          setMine("");
+          return runSearch(raw, "youtube", "channel");
         }
         pendingChannel = { id: query, name, query, avatar: null, platform: "youtube" };
       }
@@ -380,10 +381,10 @@ export default function BrowsePage() {
         <div className="card mb-6 space-y-3 p-6">
           <p className="font-medium">Import your own YouTube channel</p>
           <p className="text-xs text-[#aaaaaa]">
-            Paste a link to one of your videos or your channel URL. BlameTV finds your channel,
-            lists your uploads, and you choose which ones to embed. Google does not let other sites
-            read your YouTube recommendations, so BlameTV never asks for your Google password —
-            connecting works by link instead.
+            Paste a link to one of your videos or your channel URL and BlameTV finds your channel
+            automatically. You can also just type a name — you will get search results and choose
+            the right channel yourself. Google does not let other sites read your YouTube
+            recommendations, so BlameTV never asks for your Google password.
           </p>
           <form onSubmit={connectMine} className="flex flex-col gap-2 sm:flex-row">
             <input
@@ -395,6 +396,17 @@ export default function BrowsePage() {
             />
             <button type="submit" disabled={resolving} className="btn-primary whitespace-nowrap">
               {resolving ? "Looking up\u2026" : "Find my channel"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!mine.trim()) return setError("Type a name first");
+                setError("");
+                void runSearch(mine.trim(), "youtube", "channel");
+              }}
+              className="btn whitespace-nowrap"
+            >
+              Search and choose
             </button>
           </form>
         </div>

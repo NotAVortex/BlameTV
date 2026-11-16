@@ -11,6 +11,7 @@ export async function GET() {
       select: {
         id: true,
         name: true,
+        isPublic: true,
         createdAt: true,
         items: {
           select: {
@@ -36,20 +37,49 @@ export async function POST(req: Request) {
       return fail("Playlist name required (max 80 chars)");
     }
 
-    const playlist = await db.playlist.create({
-      data: { name: name.trim(), userId: user.id },
+    const nameTrimmed = name.trim();
+    let playlist = await db.playlist.findFirst({
+      where: { userId: user.id, name: nameTrimmed },
+      select: { id: true },
     });
+    if (!playlist) {
+      playlist = await db.playlist.create({
+        data: { name: nameTrimmed, userId: user.id },
+        select: { id: true },
+      });
+    }
 
     if (typeof videoId === "string" && videoId) {
       const video = await db.video.findUnique({ where: { id: videoId } });
       if (video) {
-        await db.playlistItem.create({
-          data: { playlistId: playlist.id, videoId },
+        await db.playlistItem.upsert({
+          where: { playlistId_videoId: { playlistId: playlist.id, videoId } },
+          create: { playlistId: playlist.id, videoId },
+          update: {},
         });
       }
     }
 
     return ok({ id: playlist.id }, 201);
+  } catch (err) {
+    return handleError(err);
+  }
+}
+
+export async function PATCH(req: Request) {
+  try {
+    const user = await requireUser();
+    const { id, isPublic } = await req.json();
+    if (typeof id !== "string" || typeof isPublic !== "boolean") {
+      return fail("id and isPublic required");
+    }
+    const playlist = await db.playlist.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+    if (!playlist || playlist.userId !== user.id) return fail("Forbidden", 403);
+    await db.playlist.update({ where: { id }, data: { isPublic } });
+    return ok({ success: true });
   } catch (err) {
     return handleError(err);
   }

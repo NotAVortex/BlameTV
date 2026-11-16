@@ -26,7 +26,7 @@ export default function ShortsFeed({
   const loadingRef = useRef(false);
 
   const appendShuffled = useCallback(() => {
-    setItems((prev) => [...prev, [...initial].sort(() => Math.random() - 0.5)]);
+    setItems((prev) => [...prev, ...[...initial].sort(() => Math.random() - 0.5)]);
   }, [initial]);
 
   useEffect(() => {

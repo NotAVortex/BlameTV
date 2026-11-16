@@ -38,6 +38,19 @@ model User {
   hypes          Hype[]
   whispersSent     Whisper[] @relation("WhisperSender")
   whispersReceived Whisper[] @relation("WhisperRecipient")
+  lockedChannels  LockedChannel[]
+}
+
+model LockedChannel {
+  id         String   @id @default(cuid())
+  ownerId    String
+  owner      User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  channelKey String
+  name       String
+  avatarUrl  String?
+  createdAt  DateTime @default(now())
+
+  @@unique([ownerId, channelKey])
 }
 
 model Whisper {
@@ -145,6 +158,7 @@ model WatchHistory {
 model Playlist {
   id        String         @id @default(cuid())
   name      String
+  isPublic  Boolean        @default(false)
   userId    String
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   items     PlaylistItem[]

@@ -100,10 +100,14 @@ export async function generateMetadata({
 
 export default async function WatchPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
+  const sp = await searchParams;
+  const listParam = typeof sp.list === "string" ? sp.list : undefined;
   const user = await getSessionUser();
 
   const video = await db.video.findUnique({
@@ -156,6 +160,41 @@ export default async function WatchPage({
       : Promise.resolve(null),
     db.hype.count({ where: { videoId: id } }),
   ]);
+
+  const playlist = listParam
+    ? await db.playlist.findUnique({
+        where: { id: listParam },
+        select: {
+          id: true,
+          name: true,
+          isPublic: true,
+          userId: true,
+          items: {
+            orderBy: { addedAt: "asc" as const },
+            select: {
+              video: {
+                select: {
+                  id: true,
+                  title: true,
+                  thumbnailUrl: true,
+                  durationSec: true,
+                  visibility: true,
+                  ownerId: true,
+                },
+              },
+            },
+          },
+        },
+      })
+    : null;
+  const visiblePlaylist =
+    playlist && (playlist.isPublic || playlist.userId === user?.id) ? playlist : null;
+  const playlistVideos = visiblePlaylist
+    ? visiblePlaylist.items
+        .filter((i) => visiblePlaylist.userId === user?.id || i.video.visibility === "PUBLIC")
+        .map((i) => i.video)
+    : [];
+  const playlistIndex = playlistVideos.findIndex((v) => v.id === id);
 
   return (
     <div className="mx-auto grid max-w-[1400px] grid-cols-1 gap-6 px-6 py-6 lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -288,6 +327,51 @@ export default async function WatchPage({
             initialMyHype={!!myHype}
           />
         </div>
+
+        {visiblePlaylist && playlistVideos.length > 0 && (
+          <div className="card mt-4 p-4">
+            <div className="mb-3 flex items-baseline justify-between gap-3">
+              <h2 className="truncate text-sm font-semibold">{visiblePlaylist.name}</h2>
+              <span className="shrink-0 text-xs text-[#aaaaaa]">
+                {playlistIndex >= 0 ? `${playlistIndex + 1} / ${playlistVideos.length}` : `${playlistVideos.length} videos`}
+              </span>
+            </div>
+            <div className="max-h-72 space-y-1 overflow-y-auto">
+              {playlistVideos.map((v, i) => (
+                <Link
+                  key={v.id}
+                  href={`/watch/${v.id}?list=${visiblePlaylist.id}`}
+                  className={`flex items-center gap-3 rounded-lg p-2 transition-colors ${
+                    v.id === id ? "bg-[#272727]" : "hover:bg-[#212121]"
+                  }`}
+                >
+                  <span className="w-8 shrink-0 text-center text-xs text-[#aaaaaa]">
+                    {v.id === id ? "Now" : playlistIndex >= 0 && i === playlistIndex + 1 ? "Next" : i + 1}
+                  </span>
+                  <span className="h-10 w-[72px] shrink-0 overflow-hidden rounded bg-[#212121]">
+                    {v.thumbnailUrl ? (
+                      <img src={v.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="flex h-full items-center justify-center text-[#555555]">
+                        <svg viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6" aria-hidden="true">
+                          <path d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+                        </svg>
+                      </span>
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1 text-xs">
+                    <span className={`line-clamp-1 ${v.id === id ? "font-semibold text-[#3ea6ff]" : ""}`}>
+                      {v.title}
+                    </span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-[#717171]">
+              Videos from this playlist play one after another — pick any row to jump to it.
+            </p>
+          </div>
+        )}
 
         {video.description && (
           <div className="card mt-4 p-4">

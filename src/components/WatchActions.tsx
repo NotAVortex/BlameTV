@@ -108,6 +108,12 @@ export default function WatchActions({
   const [showReport, setShowReport] = useState(false);
   const [reason, setReason] = useState("SPAM");
   const [details, setDetails] = useState("");
+  const [showSave, setShowSave] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [savePlaylists, setSavePlaylists] = useState<
+    { id: string; name: string; items: { video: { id: string } }[] }[]
+  >([]);
+  const [newPlaylistName, setNewPlaylistName] = useState("");
   const original = embedUrl ? originalWatchUrl(embedUrl) : null;
 
   async function like(value: 1 | -1) {
@@ -138,19 +144,71 @@ export default function WatchActions({
 
   async function saveToPlaylist() {
     if (!loggedIn) return router.push("/login");
-    const name = await dialogs.prompt({
-      title: "Save to playlist",
-      message: "Name a playlist. A new one is created if the name does not exist yet.",
-      placeholder: "Playlist name",
-      submitLabel: "Save",
+    setSaveBusy(true);
+    try {
+      const res = await fetch("/api/me/playlists");
+      const data = await res.json().catch(() => ({}));
+      setSavePlaylists(data.playlists ?? []);
+      setNewPlaylistName("");
+      setShowSave(true);
+    } finally {
+      setSaveBusy(false);
+    }
+  }
+
+  function inPlaylist(p: { items: { video: { id: string } }[] }) {
+    return p.items.some((i) => i.video.id === videoId);
+  }
+
+  async function togglePlaylist(id: string) {
+    const current = savePlaylists.find((p) => p.id === id);
+    if (!current) return;
+    const adding = !inPlaylist(current);
+    const res = await fetch("/api/me/playlists", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        playlistId: id,
+        videoId,
+        action: adding ? "add" : "remove",
+      }),
     });
-    if (!name) return;
-    const created = await fetch("/api/me/playlists", {
+    if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setSavePlaylists((prev) =>
+        prev.map((p) =>
+          p.id === id
+            ? {
+                ...p,
+                items:
+                  data.added === false
+                    ? p.items.filter((i) => i.video.id !== videoId)
+                    : [...p.items, { video: { id: videoId } }],
+              }
+            : p
+        )
+      );
+      setMsg(adding ? "Added to playlist" : "Removed from playlist");
+    }
+  }
+
+  async function createPlaylistAndSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newPlaylistName.trim()) return;
+    const res = await fetch("/api/me/playlists", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, videoId }),
+      body: JSON.stringify({ name: newPlaylistName.trim(), videoId }),
     });
-    if (created.ok) setMsg("Saved to playlist ✓");
+    if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setSavePlaylists((prev) => [
+        { id: data.id, name: newPlaylistName.trim(), items: [{ video: { id: videoId } }] },
+        ...prev,
+      ]);
+      setNewPlaylistName("");
+      setMsg("Saved to playlist");
+    }
   }
 
   async function share() {
@@ -228,7 +286,7 @@ export default function WatchActions({
           <ShareIcon /> Share
         </span>
       </button>
-      <button onClick={saveToPlaylist} className="btn-ghost">
+      <button onClick={saveToPlaylist} disabled={saveBusy} className="btn-ghost">
         ＋ Save
       </button>
       {!isOwner && (
@@ -259,6 +317,69 @@ export default function WatchActions({
         </a>
       ) : null}
       {msg && <span className="text-xs text-[#3ea6ff]">{msg}</span>}
+
+      {showSave && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="card w-full max-w-md p-6">
+            <h3 className="mb-1 text-lg font-semibold">Save to playlist</h3>
+            <p className="mb-4 text-xs text-[#aaaaaa]">
+              Click a playlist to add or remove this video.
+            </p>
+            <div className="mb-4 max-h-64 space-y-1 overflow-y-auto">
+              {savePlaylists.length === 0 ? (
+                <p className="py-4 text-sm text-[#aaaaaa]">
+                  No playlists yet — create your first one below.
+                </p>
+              ) : (
+                savePlaylists.map((p) => {
+                  const added = inPlaylist(p);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => togglePlaylist(p.id)}
+                      className={`flex w-full items-center justify-between rounded-xl border p-3 text-left transition-colors ${
+                        added
+                          ? "border-[#1f4a2a] bg-[#122417] hover:border-[#2a6b3a]"
+                          : "border-[#272727] hover:bg-[#1c1c1c]"
+                      }`}
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium">{p.name}</span>
+                        <span className="text-xs text-[#aaaaaa]">{p.items.length} videos</span>
+                      </span>
+                      <span
+                        className={`shrink-0 text-xs font-medium ${
+                          added ? "text-[#7ddf9a]" : "text-[#3ea6ff]"
+                        }`}
+                      >
+                        {added ? "Saved — click to remove" : "Add"}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+            <form onSubmit={createPlaylistAndSave} className="flex gap-2">
+              <input
+                value={newPlaylistName}
+                onChange={(e) => setNewPlaylistName(e.target.value)}
+                maxLength={80}
+                placeholder="New playlist name"
+                className="input flex-1"
+              />
+              <button type="submit" disabled={!newPlaylistName.trim()} className="btn-primary">
+                Create
+              </button>
+            </form>
+            <div className="mt-4 flex justify-end">
+              <button onClick={() => setShowSave(false)} className="btn-ghost">
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showReport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
