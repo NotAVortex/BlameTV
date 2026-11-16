@@ -42,11 +42,12 @@ export default function SettingsPage() {
 
   const CROP_VIEW = 256;
 
-  function clampPos(x: number, y: number, cover: number, zoom: number) {
-    const half = Math.max(0, (CROP_VIEW * cover * zoom - CROP_VIEW) / 2);
+  function clampPos(x: number, y: number, dw: number, dh: number) {
+    const halfX = Math.max(0, (dw - CROP_VIEW) / 2);
+    const halfY = Math.max(0, (dh - CROP_VIEW) / 2);
     return {
-      x: Math.max(-half, Math.min(half, x)),
-      y: Math.max(-half, Math.min(half, y)),
+      x: Math.max(-halfX, Math.min(halfX, x)),
+      y: Math.max(-halfY, Math.min(halfY, y)),
     };
   }
 
@@ -103,8 +104,8 @@ export default function SettingsPage() {
     const next = clampPos(
       dragRef.current.baseX + (e.clientX - dragRef.current.startX),
       dragRef.current.baseY + (e.clientY - dragRef.current.startY),
-      crop.cover,
-      cropZoom
+      crop.iw * crop.cover * cropZoom,
+      crop.ih * crop.cover * cropZoom
     );
     setCropPos(next);
   }
@@ -336,8 +337,8 @@ export default function SettingsPage() {
                 draggable={false}
                 className="pointer-events-none absolute left-1/2 top-1/2 max-w-none select-none"
                 style={{
-                  width: CROP_VIEW * crop.cover,
-                  height: "auto",
+                  width: crop.iw * crop.cover,
+                  height: crop.ih * crop.cover,
                   transform: `translate(-50%, -50%) translate(${cropPos.x}px, ${cropPos.y}px) scale(${cropZoom})`,
                 }}
               />
@@ -353,7 +354,9 @@ export default function SettingsPage() {
                 onChange={(e) => {
                   const z = Number(e.target.value);
                   setCropZoom(z);
-                  setCropPos((p) => clampPos(p.x, p.y, crop.cover, z));
+                  setCropPos((p) =>
+                    clampPos(p.x, p.y, crop.iw * crop.cover * z, crop.ih * crop.cover * z)
+                  );
                 }}
                 className="w-full accent-[#ff3b3b]"
               />
