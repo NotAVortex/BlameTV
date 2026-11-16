@@ -2,20 +2,74 @@
 
 A YouTube-style video platform: watch, upload, import, comment, subscribe — with privacy, security and legal compliance built in.
 
-## Quick start
+## Quick start (zero config — no .env needed)
 
 ```bash
 npm install
-npm run db:push     # create the SQLite database
-npm run db:seed     # optional: sample users + videos
+npm run setup       # create the SQLite database
 npm run dev         # http://localhost:3000
 ```
 
-**Seeded accounts** (change these immediately in production):
-- Admin: `admin@blametv.example` / `ChangeMe123!`
-- Demo: `demo@blametv.example` / `ChangeMe123!`
+With no `.env`, BlameTV uses SQLite automatically and generates a strong
+session secret for you. Register an account in the browser — **the first
+account ever registered automatically becomes an admin**.
 
-The **first account ever registered automatically becomes an admin**.
+Optional sample content: `npm run db:seed` (creates
+demo@blametv.example / ChangeMe123! — for local testing only).
+
+---
+
+## 🚀 Deploy free forever (Vercel + Supabase)
+
+### One-time setup on the websites (your part, ~10 minutes)
+
+**1. Supabase (free Postgres database):**
+1. Go to [app.supabase.com](https://app.supabase.com) → sign in (GitHub login works)
+2. **New project** → name it `blametv`, choose a region near you, set a DB password (save it!)
+3. When ready, click **Connect** (top bar) → copy the **Transaction pooler** string (port `6543`)
+   - looks like: `postgresql://postgres.xxxx:PASSWORD@aws-0-eu-central-1.pooler.supabase.com:6543/postgres`
+
+**2. Cloudflare R2 (free video storage, optional but recommended):**
+- Needed only for **direct file uploads** to persist online. Embed imports (YouTube/Vimeo links) work without any storage.
+1. [dash.cloudflare.com](https://dash.cloudflare.com) (free account) → **R2 Object Storage** → **Create bucket** → name `blametv`
+2. In the bucket: **Settings** → enable **Public access** (R2.dev subdomain is fine to start) → note the public URL
+3. **R2 → Manage API tokens** → create token with **Object Read & Write** on your bucket → note Access Key ID, Secret, and the endpoint URL
+
+**3. Vercel (free hosting):**
+1. Go to [vercel.com](https://vercel.com) → **Sign up with GitHub** → authorize
+2. **Add New… → Project** → import `NotAVortex/BlameTV`
+3. Before clicking Deploy, open **Environment Variables** and add:
+
+| Key | Value |
+|---|---|
+| `DATABASE_URL` | the Supabase Transaction pooler string from step 1 |
+| `SESSION_SECRET` | any long random string (min 32 chars) — e.g. from `openssl rand -hex 32` |
+| `S3_ENDPOINT` | R2 endpoint: `https://<account-id>.r2.cloudflarestorage.com` |
+| `S3_BUCKET` | `blametv` |
+| `S3_ACCESS_KEY_ID` | R2 access key |
+| `S3_SECRET_ACCESS_KEY` | R2 secret key |
+| `S3_PUBLIC_BASE_URL` | R2 public URL from step 2 |
+| `S3_REGION` | `auto` |
+
+4. Click **Deploy** → wait ~2 minutes → your site is live at `blametv-xxx.vercel.app` 🎉
+
+### Final command (one time, from your computer)
+
+Create the tables in Supabase:
+
+```bash
+git clone https://github.com/NotAVortex/BlameTV.git
+cd BlameTV
+npm install
+DATABASE_URL="<paste-your-supabase-pooler-string>" npm run db:push:prod
+```
+
+Then open your Vercel URL and **register the first account — it becomes the admin**.
+
+### Notes
+- Every `git push` to `main` auto-redeploys the site (Vercel does this for free).
+- Supabase free projects pause after ~1 week of inactivity — open the dashboard and restore to unpause (data is kept).
+- Vercel free tier = non-commercial use. Fine for a hobby/portfolio project.
 
 ## Features
 
