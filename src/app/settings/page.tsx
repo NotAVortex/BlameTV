@@ -30,6 +30,7 @@ export default function SettingsPage() {
   const [deletePassword, setDeletePassword] = useState("");
   const [storageOk, setStorageOk] = useState(true);
   const [crop, setCrop] = useState<{
+    kind: "avatar" | "banner";
     src: string;
     name: string;
     iw: number;
@@ -40,23 +41,29 @@ export default function SettingsPage() {
   const [cropZoom, setCropZoom] = useState(1);
   const dragRef = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
 
-  const CROP_VIEW = 256;
+  const AVATAR_VIEW = 256;
+  const BANNER_VIEW = { w: 640, h: 160 };
 
-  function clampPos(x: number, y: number, dw: number, dh: number) {
-    const halfX = Math.max(0, (dw - CROP_VIEW) / 2);
-    const halfY = Math.max(0, (dh - CROP_VIEW) / 2);
+  function cropView(kind: "avatar" | "banner") {
+    return kind === "avatar" ? { w: AVATAR_VIEW, h: AVATAR_VIEW } : BANNER_VIEW;
+  }
+
+  function clampPos(x: number, y: number, dw: number, dh: number, view: { w: number; h: number }) {
+    const halfX = Math.max(0, (dw - view.w) / 2);
+    const halfY = Math.max(0, (dh - view.h) / 2);
     return {
       x: Math.max(-halfX, Math.min(halfX, x)),
       y: Math.max(-halfY, Math.min(halfY, y)),
     };
   }
 
-  function openCrop(file: File) {
+  function openCrop(file: File, kind: "avatar" | "banner") {
     const src = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
-      const cover = Math.max(CROP_VIEW / img.naturalWidth, CROP_VIEW / img.naturalHeight);
-      setCrop({ src, name: file.name, iw: img.naturalWidth, ih: img.naturalHeight, cover });
+      const view = cropView(kind);
+      const cover = Math.max(view.w / img.naturalWidth, view.h / img.naturalHeight);
+      setCrop({ kind, src, name: file.name, iw: img.naturalWidth, ih: img.naturalHeight, cover });
       setCropPos({ x: 0, y: 0 });
       setCropZoom(1);
     };
@@ -68,28 +75,38 @@ export default function SettingsPage() {
     const img = new Image();
     img.src = crop.src;
     await img.decode();
-    const k = 512 / CROP_VIEW;
+    const outW = crop.kind === "avatar" ? 512 : 1280;
+    const outH = crop.kind === "avatar" ? 512 : 320;
+    const view = cropView(crop.kind);
+    const k = outW / view.w;
     const dw = crop.iw * crop.cover * cropZoom * k;
     const dh = crop.ih * crop.cover * cropZoom * k;
     const canvas = document.createElement("canvas");
-    canvas.width = 512;
-    canvas.height = 512;
+    canvas.width = outW;
+    canvas.height = outH;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.fillStyle = "#181818";
-    ctx.fillRect(0, 0, 512, 512);
+    ctx.fillRect(0, 0, outW, outH);
     ctx.drawImage(
       img,
-      (CROP_VIEW / 2 + cropPos.x) * k - dw / 2,
-      (CROP_VIEW / 2 + cropPos.y) * k - dh / 2,
+      (view.w / 2 + cropPos.x) * k - dw / 2,
+      (view.h / 2 + cropPos.y) * k - dh / 2,
       dw,
       dh
     );
     canvas.toBlob((blob) => {
       if (!blob) return;
-      const file = new File([blob], "avatar.png", { type: "image/png" });
-      setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(blob));
+      const file = new File([blob], crop.kind === "avatar" ? "avatar.png" : "banner.png", {
+        type: "image/png",
+      });
+      if (crop.kind === "avatar") {
+        setAvatarFile(file);
+        setAvatarPreview(URL.createObjectURL(blob));
+      } else {
+        setBannerFile(file);
+        setBannerPreview(URL.createObjectURL(blob));
+      }
       setCrop(null);
     }, "image/png");
   }
@@ -101,11 +118,13 @@ export default function SettingsPage() {
 
   function onCropPointerMove(e: React.PointerEvent<HTMLDivElement>) {
     if (!dragRef.current || !crop) return;
+    const view = cropView(crop.kind);
     const next = clampPos(
       dragRef.current.baseX + (e.clientX - dragRef.current.startX),
       dragRef.current.baseY + (e.clientY - dragRef.current.startY),
       crop.iw * crop.cover * cropZoom,
-      crop.ih * crop.cover * cropZoom
+      crop.ih * crop.cover * cropZoom,
+      view
     );
     setCropPos(next);
   }
@@ -214,11 +233,19 @@ export default function SettingsPage() {
             disabled={!storageOk}
             onChange={(e) => {
               const f = e.target.files?.[0] ?? null;
-              setBannerFile(f);
-              preview(f, setBannerPreview);
+              if (!f) return;
+              if (f.type === "image/gif") {
+                setBannerFile(f);
+                preview(f, setBannerPreview);
+              } else {
+                openCrop(f, "banner");
+              }
             }}
             className="input mt-2 file:mr-3 file:rounded-full file:border-0 file:bg-[#3f3f3f] file:px-4 file:py-1 file:text-sm file:text-white disabled:opacity-40"
           />
+          <p className="mt-1 text-xs text-[#717171]">
+            Static images open a drag-and-zoom editor. Animated GIFs are used as-is.
+          </p>
           {!storageOk && (
             <p className="mt-1 text-xs text-[#ffd97a]">
               Image uploads are not available right now because storage is not connected yet.
@@ -248,7 +275,7 @@ export default function SettingsPage() {
                 setAvatarFile(f);
                 preview(f, setAvatarPreview);
               } else {
-                openCrop(f);
+                openCrop(f, "avatar");
               }
             }}
             className="input mt-2 file:mr-3 file:rounded-full file:border-0 file:bg-[#3f3f3f] file:px-4 file:py-1 file:text-sm file:text-white disabled:opacity-40"
@@ -321,11 +348,19 @@ export default function SettingsPage() {
 
       {crop && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4">
-          <div className="card w-full max-w-sm space-y-4 p-5">
-            <h3 className="text-lg font-semibold">Adjust profile picture</h3>
+          <div
+            className={`card w-full space-y-4 p-5 ${
+              crop.kind === "banner" ? "max-w-2xl" : "max-w-sm"
+            }`}
+          >
+            <h3 className="text-lg font-semibold">
+              {crop.kind === "banner" ? "Adjust banner" : "Adjust profile picture"}
+            </h3>
             <div
-              className="relative mx-auto cursor-grab overflow-hidden rounded-full bg-[#212121] active:cursor-grabbing"
-              style={{ width: CROP_VIEW, height: CROP_VIEW }}
+              className={`relative mx-auto cursor-grab overflow-hidden bg-[#212121] active:cursor-grabbing ${
+                crop.kind === "banner" ? "rounded-xl" : "rounded-full"
+              }`}
+              style={{ width: cropView(crop.kind).w, height: cropView(crop.kind).h }}
               onPointerDown={onCropPointerDown}
               onPointerMove={onCropPointerMove}
               onPointerUp={onCropPointerUp}
@@ -354,8 +389,9 @@ export default function SettingsPage() {
                 onChange={(e) => {
                   const z = Number(e.target.value);
                   setCropZoom(z);
+                  const view = cropView(crop.kind);
                   setCropPos((p) =>
-                    clampPos(p.x, p.y, crop.iw * crop.cover * z, crop.ih * crop.cover * z)
+                    clampPos(p.x, p.y, crop.iw * crop.cover * z, crop.ih * crop.cover * z, view)
                   );
                 }}
                 className="w-full accent-[#ff3b3b]"
