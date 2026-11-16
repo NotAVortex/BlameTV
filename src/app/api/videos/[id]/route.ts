@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { getSessionUser, requireUser } from "@/lib/auth";
 import { videoUpdateSchema } from "@/lib/validation";
 import { fail, handleError, ok } from "@/lib/api";
+import { deleteVideoFiles } from "@/lib/storage";
 
 export async function GET(
   _req: Request,
@@ -72,6 +73,7 @@ export async function DELETE(
       return fail("Forbidden", 403);
     }
     await db.video.delete({ where: { id } });
+    await deleteVideoFiles(video);
     return ok({ success: true });
   } catch (err) {
     return handleError(err);

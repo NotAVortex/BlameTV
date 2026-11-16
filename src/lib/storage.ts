@@ -127,6 +127,13 @@ export async function saveUpload(
   return `/api/files/${name}`;
 }
 
+export async function deleteVideoFiles(video: {
+  videoUrl: string | null;
+  thumbnailUrl: string | null;
+}): Promise<void> {
+  await Promise.all([deleteUpload(video.videoUrl), deleteUpload(video.thumbnailUrl)]);
+}
+
 export async function deleteUpload(url: string | null): Promise<void> {
   if (!url) return;
   const s3 = s3Config();

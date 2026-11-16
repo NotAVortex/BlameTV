@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { profileSchema } from "@/lib/validation";
-import { saveUpload, UploadError } from "@/lib/storage";
+import { saveUpload, deleteVideoFiles, UploadError } from "@/lib/storage";
 import { validateAnimation } from "@/lib/media";
 import { fail, handleError, ok } from "@/lib/api";
 
@@ -95,7 +95,13 @@ export async function DELETE(req: Request) {
       return fail("Incorrect password", 403);
     }
 
+    const ownedVideos = await db.video.findMany({
+      where: { ownerId: user.id },
+      select: { videoUrl: true, thumbnailUrl: true },
+    });
+
     await db.user.delete({ where: { id: user.id } });
+    await Promise.all(ownedVideos.map((v) => deleteVideoFiles(v)));
     return ok({ success: true });
   } catch (err) {
     return handleError(err);

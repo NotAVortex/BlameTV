@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { fail, handleError, ok } from "@/lib/api";
+import { deleteVideoFiles } from "@/lib/storage";
 
 export async function PATCH(
   req: Request,
@@ -39,7 +40,14 @@ export async function DELETE(
     });
     if (!report) return fail("Not found", 404);
 
-    if (report.videoId) await db.video.delete({ where: { id: report.videoId } });
+    if (report.videoId) {
+      const video = await db.video.findUnique({
+        where: { id: report.videoId },
+        select: { videoUrl: true, thumbnailUrl: true },
+      });
+      await db.video.delete({ where: { id: report.videoId } });
+      if (video) await deleteVideoFiles(video);
+    }
     if (report.commentId) await db.comment.delete({ where: { id: report.commentId } });
     await db.report.delete({ where: { id } });
 
