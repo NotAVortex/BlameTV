@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
@@ -10,6 +11,49 @@ import CommentsTabs from "@/components/CommentsTabs";
 import SubscribeButton from "@/components/SubscribeButton";
 import VideoPlayer from "@/components/VideoPlayer";
 import VerifiedBadge from "@/components/VerifiedBadge";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const video = await db.video.findUnique({
+    where: { id },
+    select: {
+      title: true,
+      description: true,
+      thumbnailUrl: true,
+      visibility: true,
+      sourceChannel: true,
+      owner: { select: { displayName: true } },
+    },
+  });
+  if (!video || video.visibility !== "PUBLIC") {
+    return { title: "BlameTV" };
+  }
+  const description =
+    video.description.slice(0, 300) ||
+    (video.sourceChannel
+      ? `A video from ${video.sourceChannel}, on BlameTV`
+      : `A video by ${video.owner.displayName}, on BlameTV`);
+  return {
+    title: video.title,
+    description,
+    openGraph: {
+      title: video.title,
+      description,
+      type: "video.other",
+      images: video.thumbnailUrl ? [{ url: video.thumbnailUrl }] : undefined,
+    },
+    twitter: {
+      card: video.thumbnailUrl ? "summary_large_image" : "summary",
+      title: video.title,
+      description,
+      images: video.thumbnailUrl ? [video.thumbnailUrl] : undefined,
+    },
+  };
+}
 
 export default async function WatchPage({
   params,

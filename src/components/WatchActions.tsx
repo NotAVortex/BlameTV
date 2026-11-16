@@ -40,6 +40,23 @@ function DownloadIcon() {
   );
 }
 
+function ShareIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-4 w-4"
+      aria-hidden="true"
+    >
+      <path d="M14 5l7 7-7 7m7-7H8a4 4 0 00-4 4v2" />
+    </svg>
+  );
+}
+
 function HypeIcon() {
   return (
     <svg
@@ -136,6 +153,30 @@ export default function WatchActions({
     if (created.ok) setMsg("Saved to playlist ✓");
   }
 
+  async function share() {
+    const url = `${window.location.origin}/watch/${videoId}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ url, title: document.title });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setMsg("Link copied to clipboard");
+    } catch {
+      try {
+        const input = document.createElement("textarea");
+        input.value = url;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand("copy");
+        document.body.removeChild(input);
+        setMsg("Link copied to clipboard");
+      } catch {
+        setMsg(url);
+      }
+    }
+  }
+
   async function submitReport() {
     const res = await fetch("/api/reports", {
       method: "POST",
@@ -178,6 +219,15 @@ export default function WatchActions({
         )}
       </div>
 
+      <button
+        onClick={share}
+        title="Copy the link to this video so you can paste it anywhere — chat apps show the thumbnail and title automatically"
+        className="btn-ghost"
+      >
+        <span className="flex items-center gap-2">
+          <ShareIcon /> Share
+        </span>
+      </button>
       <button onClick={saveToPlaylist} className="btn-ghost">
         ＋ Save
       </button>
