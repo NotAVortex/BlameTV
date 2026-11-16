@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db, insensitive } from "@/lib/db";
 import VideoCard from "@/components/VideoCard";
 import SearchBox from "@/components/SearchBox";
+import VerifiedBadge from "@/components/VerifiedBadge";
 
 export const metadata = { title: "Search — BlameTV" };
 
@@ -52,6 +53,7 @@ export default async function SearchPage({
           displayName: true,
           avatarUrl: true,
           bannerUrl: true,
+          verified: true,
           _count: { select: { videos: true, subscribers: true } },
         },
       })
@@ -87,8 +89,9 @@ export default async function SearchPage({
                       )}
                     </span>
                     <span className="min-w-0">
-                      <span className="block truncate text-sm font-semibold">
+                      <span className="flex items-center gap-1.5 truncate text-sm font-semibold">
                         {p.displayName}
+                        {p.verified && <VerifiedBadge />}
                       </span>
                       <span className="block truncate text-xs text-[#aaaaaa]">
                         @{p.username} · {p._count.videos} videos · {p._count.subscribers}{" "}

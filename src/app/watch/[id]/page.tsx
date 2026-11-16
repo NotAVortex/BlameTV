@@ -8,6 +8,7 @@ import RecordView from "@/components/RecordView";
 import WatchActions from "@/components/WatchActions";
 import Comments from "@/components/Comments";
 import SubscribeButton from "@/components/SubscribeButton";
+import VerifiedBadge from "@/components/VerifiedBadge";
 
 export default async function WatchPage({
   params,
@@ -27,6 +28,7 @@ export default async function WatchPage({
           displayName: true,
           bio: true,
           avatarUrl: true,
+          verified: true,
           _count: { select: { subscribers: true } },
         },
       },
@@ -98,7 +100,10 @@ export default async function WatchPage({
               )}
             </span>
             <span>
-              <span className="block text-sm font-semibold">{video.owner.displayName}</span>
+              <span className="flex items-center gap-1.5 text-sm font-semibold">
+                {video.owner.displayName}
+                {video.owner.verified && <VerifiedBadge />}
+              </span>
               <span className="block text-xs text-[#aaaaaa]">
                 {video.owner._count.subscribers} subscribers
               </span>

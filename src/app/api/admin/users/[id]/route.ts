@@ -13,8 +13,13 @@ export async function PATCH(
     const body = await req.json().catch(() => ({}));
     const action = body?.action;
 
-    if (action !== "remove-avatar" && action !== "remove-banner") {
-      return fail("action must be remove-avatar or remove-banner", 422);
+    if (
+      action !== "remove-avatar" &&
+      action !== "remove-banner" &&
+      action !== "set-verified" &&
+      action !== "unset-verified"
+    ) {
+      return fail("action must be remove-avatar, remove-banner, set-verified or unset-verified", 422);
     }
 
     const target = await db.user.findUnique({
@@ -26,9 +31,11 @@ export async function PATCH(
     if (action === "remove-avatar") {
       await deleteUpload(target.avatarUrl);
       await db.user.update({ where: { id }, data: { avatarUrl: null } });
-    } else {
+    } else if (action === "remove-banner") {
       await deleteUpload(target.bannerUrl);
       await db.user.update({ where: { id }, data: { bannerUrl: null } });
+    } else {
+      await db.user.update({ where: { id }, data: { verified: action === "set-verified" } });
     }
 
     return ok({ success: true, actor: admin.id });

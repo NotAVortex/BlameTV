@@ -19,7 +19,7 @@ export async function GET(
         id: true,
         body: true,
         createdAt: true,
-        author: { select: { username: true, displayName: true, avatarUrl: true } },
+        author: { select: { username: true, displayName: true, avatarUrl: true, verified: true } },
         _count: { select: { likes: true, replies: true } },
       },
     });
@@ -34,7 +34,7 @@ export async function GET(
             id: true,
             body: true,
             createdAt: true,
-            author: { select: { username: true, displayName: true, avatarUrl: true } },
+            author: { select: { username: true, displayName: true, avatarUrl: true, verified: true } },
             _count: { select: { likes: true } },
           },
         })

@@ -17,6 +17,7 @@ model User {
   avatarUrl      String?
   bannerUrl      String?
   role           String    @default("USER")
+  verified       Boolean   @default(false)
   createdAt      DateTime  @default(now())
   videos         Video[]
   comments       Comment[]

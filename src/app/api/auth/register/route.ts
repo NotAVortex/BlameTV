@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { createSession } from "@/lib/auth";
+import { createSession, stashCurrentSession } from "@/lib/auth";
 import { registerSchema } from "@/lib/validation";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { fail, handleError, ok } from "@/lib/api";
@@ -37,6 +37,7 @@ export async function POST(req: Request) {
       select: { id: true },
     });
 
+    await stashCurrentSession();
     await createSession(user.id);
     return ok({ success: true }, 201);
   } catch (err) {

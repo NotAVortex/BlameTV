@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { timeAgo } from "@/components/VideoCard";
+import { useDialogs } from "@/components/dialogs";
+import VerifiedBadge from "@/components/VerifiedBadge";
 
 function ThumbIcon() {
   return (
@@ -26,7 +28,7 @@ type CommentData = {
   id: string;
   body: string;
   createdAt: string;
-  author: { username: string; displayName: string; avatarUrl: string | null };
+  author: { username: string; displayName: string; avatarUrl: string | null; verified: boolean };
   likes: number;
   replyCount?: number;
   replies?: CommentData[];
@@ -46,6 +48,7 @@ export default function Comments({
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
+  const dialogs = useDialogs();
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
 
   const reload = useCallback(() => {
@@ -95,7 +98,7 @@ export default function Comments({
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this comment?")) return;
+    if (!(await dialogs.confirm({ message: "Delete this comment?", danger: true, confirmLabel: "Delete" }))) return;
     const res = await fetch(`/api/comments/${id}`, { method: "DELETE" });
     if (res.ok) reload();
   }
@@ -120,7 +123,10 @@ export default function Comments({
               href={`/channel/${c.author.username}`}
               className="font-semibold transition-colors hover:text-[#3ea6ff]"
             >
-              {c.author.displayName}
+              <span className="inline-flex items-center gap-1">
+                {c.author.displayName}
+                {c.author.verified && <VerifiedBadge />}
+              </span>
             </Link>{" "}
             <span className="text-[#aaaaaa]">{timeAgo(c.createdAt)}</span>
           </p>

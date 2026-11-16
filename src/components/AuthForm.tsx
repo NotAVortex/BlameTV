@@ -55,6 +55,9 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
                 pattern="[a-zA-Z0-9_-]+"
                 className="input"
                 placeholder="letters, numbers, _ and -"
+                onChange={(e) => {
+                  e.target.value = e.target.value.replace(/[^a-zA-Z0-9_-]/g, "");
+                }}
               />
             </div>
             <div>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import AppShell from "@/components/AppShell";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, listStashedAccounts } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "BlameTV",
@@ -12,11 +12,12 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const user = await getSessionUser();
+  const accounts = user ? await listStashedAccounts() : [];
 
   return (
     <html lang="en">
       <body className="min-h-screen bg-[#0f0f0f] text-[#f1f1f1] antialiased">
-        <AppShell user={user}>{children}</AppShell>
+        <AppShell user={user} accounts={accounts}>{children}</AppShell>
       </body>
     </html>
   );

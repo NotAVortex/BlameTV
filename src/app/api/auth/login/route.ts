@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { createSession } from "@/lib/auth";
+import { createSession, stashCurrentSession } from "@/lib/auth";
 import { loginSchema } from "@/lib/validation";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { fail, handleError, ok } from "@/lib/api";
@@ -21,6 +21,7 @@ export async function POST(req: Request) {
       return fail("Invalid email or password", 401);
     }
 
+    await stashCurrentSession();
     await createSession(user.id);
     return ok({ success: true });
   } catch (err) {

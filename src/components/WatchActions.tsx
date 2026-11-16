@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { originalWatchUrl } from "@/lib/embed";
+import { useDialogs } from "@/components/dialogs";
 
 function ThumbIcon({ down = false }: { down?: boolean }) {
   return (
@@ -59,6 +60,7 @@ export default function WatchActions({
   embedUrl: string | null;
 }) {
   const router = useRouter();
+  const dialogs = useDialogs();
   const [likes, setLikes] = useState(initialLikes);
   const [dislikes, setDislikes] = useState(initialDislikes);
   const [myLike, setMyLike] = useState(initialMyLike);
@@ -86,7 +88,12 @@ export default function WatchActions({
 
   async function saveToPlaylist() {
     if (!loggedIn) return router.push("/login");
-    const name = prompt("Save to playlist — name (creates if new):");
+    const name = await dialogs.prompt({
+      title: "Save to playlist",
+      message: "Name a playlist. A new one is created if the name does not exist yet.",
+      placeholder: "Playlist name",
+      submitLabel: "Save",
+    });
     if (!name) return;
     const created = await fetch("/api/me/playlists", {
       method: "POST",
@@ -124,11 +131,9 @@ export default function WatchActions({
         </button>
       </div>
 
-      {!isOwner && (
-        <button onClick={saveToPlaylist} className="btn-ghost">
-          ＋ Save
-        </button>
-      )}
+      <button onClick={saveToPlaylist} className="btn-ghost">
+        ＋ Save
+      </button>
       {!isOwner && (
         <button
           onClick={() => (loggedIn ? setShowReport(true) : router.push("/login"))}

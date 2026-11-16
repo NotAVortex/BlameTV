@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { formatViews, timeAgo } from "@/components/VideoCard";
+import { useDialogs } from "@/components/dialogs";
 
 type StudioVideo = {
   id: string;
@@ -15,6 +16,7 @@ type StudioVideo = {
 };
 
 export default function StudioPage() {
+  const dialogs = useDialogs();
   const [data, setData] = useState<{
     videos: StudioVideo[];
     totals: { views: number; likes: number; comments: number };
@@ -35,7 +37,7 @@ export default function StudioPage() {
   }, []);
 
   async function remove(id: string) {
-    if (!confirm("Delete this video permanently?")) return;
+    if (!(await dialogs.confirm({ message: "Delete this video permanently?", danger: true, confirmLabel: "Delete" }))) return;
     const res = await fetch(`/api/videos/${id}`, { method: "DELETE" });
     if (res.ok && data) {
       setData({ ...data, videos: data.videos.filter((v) => v.id !== id) });

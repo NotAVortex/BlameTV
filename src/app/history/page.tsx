@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { formatViews, timeAgo } from "@/components/VideoCard";
+import { useDialogs } from "@/components/dialogs";
 
 type HistoryItem = {
   videoId: string;
@@ -18,6 +19,7 @@ type HistoryItem = {
 };
 
 export default function HistoryPage() {
+  const dialogs = useDialogs();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
 
@@ -36,7 +38,7 @@ export default function HistoryPage() {
   }, []);
 
   async function clearAll() {
-    if (!confirm("Clear your entire watch history? This cannot be undone.")) return;
+    if (!(await dialogs.confirm({ message: "Clear your entire watch history? This cannot be undone.", danger: true, confirmLabel: "Clear" }))) return;
     await fetch("/api/me/history", { method: "DELETE" });
     setHistory([]);
   }

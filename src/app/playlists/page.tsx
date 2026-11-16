@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { formatDuration } from "@/components/VideoCard";
+import { useDialogs } from "@/components/dialogs";
 
 type Playlist = {
   id: string;
@@ -12,6 +13,7 @@ type Playlist = {
 };
 
 export default function PlaylistsPage() {
+  const dialogs = useDialogs();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [state, setState] = useState<"loading" | "ready">("loading");
   const [name, setName] = useState("");
@@ -45,7 +47,7 @@ export default function PlaylistsPage() {
   }
 
   async function removePlaylist(id: string) {
-    if (!confirm("Delete this playlist?")) return;
+    if (!(await dialogs.confirm({ message: "Delete this playlist?", danger: true, confirmLabel: "Delete" }))) return;
     const res = await fetch(`/api/me/playlists?id=${id}`, { method: "DELETE" });
     if (res.ok) setPlaylists((p) => p.filter((x) => x.id !== id));
   }

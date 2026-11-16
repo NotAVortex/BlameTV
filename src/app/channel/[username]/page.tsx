@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import VideoCard, { timeAgo } from "@/components/VideoCard";
 import SubscribeButton from "@/components/SubscribeButton";
+import VerifiedBadge from "@/components/VerifiedBadge";
 
 export default async function ChannelPage({
   params,
@@ -21,6 +22,7 @@ export default async function ChannelPage({
       bio: true,
       avatarUrl: true,
       bannerUrl: true,
+      verified: true,
       createdAt: true,
       _count: { select: { subscribers: true, videos: true } },
     },
@@ -66,7 +68,10 @@ export default async function ChannelPage({
           )}
         </span>
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-bold">{channel.displayName}</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-bold">
+            {channel.displayName}
+            {channel.verified && <VerifiedBadge className="h-5 w-5" />}
+          </h1>
           <p className="text-sm text-[#aaaaaa]">
             @{channel.username} · {channel._count.subscribers} subscribers ·{" "}
             {channel._count.videos} videos · joined {timeAgo(channel.createdAt)}

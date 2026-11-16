@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import VerifiedBadge from "@/components/VerifiedBadge";
+import { useDialogs } from "@/components/dialogs";
 
 type Report = {
   id: string;
@@ -21,6 +23,7 @@ type AdminUser = {
   createdAt: string;
   avatarUrl: string | null;
   bannerUrl: string | null;
+  verified: boolean;
   _count: { videos: number; comments: number };
 };
 
@@ -35,6 +38,7 @@ type AdminVideo = {
 };
 
 export default function AdminPage() {
+  const dialogs = useDialogs();
   const [data, setData] = useState<{
     reports: Report[];
     stats: { videoCount: number; userCount: number; commentCount: number; openReports: number };
@@ -78,7 +82,7 @@ export default function AdminPage() {
   }
 
   async function takedown(report: Report) {
-    if (!confirm("Delete the reported content permanently?")) return;
+    if (!(await dialogs.confirm({ message: "Delete the reported content permanently?", danger: true, confirmLabel: "Delete" }))) return;
     const res = await fetch(`/api/admin/reports/${report.id}`, { method: "DELETE" });
     if (res.ok) {
       setData((d) => (d ? { ...d, reports: d.reports.filter((r) => r.id !== report.id) } : d));
@@ -96,7 +100,14 @@ export default function AdminPage() {
   }
 
   async function removeMedia(userId: string, action: "remove-avatar" | "remove-banner") {
-    if (!confirm(action === "remove-avatar" ? "Remove this user's profile picture?" : "Remove this user's banner?")) return;
+    if (
+      !(await dialogs.confirm({
+        message: action === "remove-avatar" ? "Remove this user's profile picture?" : "Remove this user's banner?",
+        danger: true,
+        confirmLabel: "Remove",
+      }))
+    )
+      return;
     const res = await fetch(`/api/admin/users/${userId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -114,9 +125,18 @@ export default function AdminPage() {
   }
 
   async function deleteVideo(id: string) {
-    if (!confirm("Delete this video permanently? Its comments and likes are removed too.")) return;
+    if (!(await dialogs.confirm({ message: "Delete this video permanently? Its comments and likes are removed too.", danger: true, confirmLabel: "Delete" }))) return;
     const res = await fetch(`/api/admin/videos/${id}`, { method: "DELETE" });
     if (res.ok) setVideos((vs) => vs.filter((v) => v.id !== id));
+  }
+
+  async function setVerified(userId: string, verified: boolean) {
+    const res = await fetch(`/api/admin/users/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: verified ? "set-verified" : "unset-verified" }),
+    });
+    if (res.ok) setUsers((us) => us.map((u) => (u.id === userId ? { ...u, verified } : u)));
   }
 
   if (error) return <p className="p-8 text-sm text-[#ff6b6b]">{error}</p>;
@@ -203,7 +223,10 @@ export default function AdminPage() {
               href={`/channel/${u.username}`}
               className="font-semibold text-[#3ea6ff] hover:underline"
             >
-              {u.displayName}
+              <span className="flex items-center gap-1.5">
+                {u.displayName}
+                {u.verified && <VerifiedBadge />}
+              </span>
             </Link>
             <span className="text-[#aaaaaa]">@{u.username}</span>
             <span className="text-xs text-[#aaaaaa]">
@@ -217,6 +240,12 @@ export default function AdminPage() {
               {u.role}
             </span>
             <div className="flex gap-2">
+              <button
+                onClick={() => setVerified(u.id, !u.verified)}
+                className={`btn-ghost !py-1 text-xs ${u.verified ? "" : "!text-[#3ea6ff]"}`}
+              >
+                {u.verified ? "Remove verified" : "Verify"}
+              </button>
               {u.avatarUrl && (
                 <button
                   onClick={() => removeMedia(u.id, "remove-avatar")}

@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
-import { getPersonalFeed } from "@/lib/recommend";
+import { getPersonalFeed, randomPublicIdsInCategory } from "@/lib/recommend";
 import VideoCard from "@/components/VideoCard";
-import { CATEGORIES } from "@/lib/validation";
 
 export const metadata = { title: "BlameTV" };
 
@@ -16,10 +15,9 @@ export default async function HomePage({
   const user = await getSessionUser();
 
   if (category) {
+    const ids = await randomPublicIdsInCategory(category, 48);
     const videos = await db.video.findMany({
-      where: { visibility: "PUBLIC", category },
-      orderBy: { createdAt: "desc" },
-      take: 48,
+      where: { visibility: "PUBLIC", category, id: { in: ids } },
       select: {
         id: true,
         title: true,
@@ -33,7 +31,6 @@ export default async function HomePage({
 
     return (
       <div className="px-6 py-4">
-        <CategoryNav active={category} />
         <div className="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {videos.map((v) => (
             <VideoCard key={v.id} video={v} />
@@ -47,7 +44,6 @@ export default async function HomePage({
 
   return (
     <div className="px-6 py-4">
-      <CategoryNav />
       {!user && (
         <p className="mb-6 rounded-xl bg-[#181818] px-4 py-3 text-sm text-[#aaaaaa]">
           Watching anonymously — showing trending videos.{" "}
@@ -74,31 +70,5 @@ export default async function HomePage({
         ))}
       </div>
     </div>
-  );
-}
-
-function CategoryNav({ active }: { active?: string }) {
-  return (
-    <nav className="mb-6 flex flex-wrap gap-2">
-      <Link
-        href="/"
-        className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-          !active ? "bg-[#f1f1f1] text-[#0f0f0f]" : "bg-[#272727] hover:bg-[#3f3f3f]"
-        }`}
-      >
-        All
-      </Link>
-      {CATEGORIES.map((c) => (
-        <Link
-          key={c}
-          href={`/?category=${encodeURIComponent(c)}`}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-            active === c ? "bg-[#f1f1f1] text-[#0f0f0f]" : "bg-[#272727] hover:bg-[#3f3f3f]"
-          }`}
-        >
-          {c}
-        </Link>
-      ))}
-    </nav>
   );
 }

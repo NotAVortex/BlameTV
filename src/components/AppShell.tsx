@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import type { SessionUser } from "@/lib/auth";
+import { DialogProvider } from "@/components/dialogs";
+import type { SessionUser, StashedAccount } from "@/lib/auth";
 
 const ICON_PATHS: Record<string, string> = {
   home: "M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75",
@@ -128,9 +129,11 @@ function SidebarContent({
 
 export default function AppShell({
   user,
+  accounts = [],
   children,
 }: {
   user: SessionUser | null;
+  accounts?: StashedAccount[];
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -177,6 +180,23 @@ export default function AppShell({
     router.push(path);
   }
 
+  function switchTo(username: string) {
+    setMenuOpen(false);
+    fetch("/api/auth/accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username }),
+    }).then(() => window.location.assign("/"));
+  }
+
+  function forgetAccount(username: string) {
+    fetch("/api/auth/accounts", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username }),
+    }).then(() => router.refresh());
+  }
+
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     setMenuOpen(false);
@@ -190,7 +210,7 @@ export default function AppShell({
   }
 
   return (
-    <>
+    <DialogProvider>
       <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center gap-3 bg-[#0f0f0f]/95 px-4 backdrop-blur">
         <button
           onClick={() => setDrawerOpen(true)}
@@ -313,6 +333,50 @@ export default function AppShell({
                         {link.label}
                       </Link>
                     ))}
+                    {accounts.length > 0 && (
+                      <div className="border-t border-[#272727] px-4 py-2">
+                        <p className="mb-1 text-xs uppercase tracking-wider text-[#717171]">
+                          Switch account
+                        </p>
+                        {accounts.map((a) => (
+                          <div key={a.username} className="flex items-center gap-1 py-0.5">
+                            <button
+                              onClick={() => switchTo(a.username)}
+                              className="flex min-w-0 flex-1 items-center gap-2 rounded-lg p-1 text-left transition-colors hover:bg-[#2f2f2f]"
+                            >
+                              <span className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-[#3d3d3d]">
+                                {a.avatarUrl ? (
+                                  <img src={a.avatarUrl} alt="" className="h-full w-full object-cover" />
+                                ) : (
+                                  <span className="flex h-full w-full items-center justify-center text-xs font-bold">
+                                    {a.displayName.charAt(0).toUpperCase()}
+                                  </span>
+                                )}
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block truncate text-sm">{a.displayName}</span>
+                                <span className="block truncate text-xs text-[#aaaaaa]">@{a.username}</span>
+                              </span>
+                            </button>
+                            <button
+                              onClick={() => forgetAccount(a.username)}
+                              aria-label={`Forget ${a.username}`}
+                              className="shrink-0 rounded-full px-1.5 text-[#717171] transition-colors hover:text-[#ff6b6b]"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <Link
+                      href="/login"
+                      onClick={() => setMenuOpen(false)}
+                      className="block px-4 py-2 text-sm text-[#3ea6ff] transition-colors hover:bg-[#2f2f2f]"
+                    >
+                      Add account
+                    </Link>
+                    <div className="border-t border-[#272727]" />
                     <button
                       onClick={logout}
                       className="block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#2f2f2f]"
@@ -375,6 +439,6 @@ export default function AppShell({
           </div>
         </footer>
       </main>
-    </>
+    </DialogProvider>
   );
 }

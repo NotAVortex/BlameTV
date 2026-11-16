@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useDialogs } from "@/components/dialogs";
 
 type Me = {
   email: string;
@@ -25,6 +26,7 @@ export default function SettingsPage() {
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
+  const dialogs = useDialogs();
   const [deletePassword, setDeletePassword] = useState("");
   const [storageOk, setStorageOk] = useState(true);
   const [crop, setCrop] = useState<{
@@ -161,7 +163,15 @@ export default function SettingsPage() {
   }
 
   async function deleteAccount() {
-    if (!confirm("Permanently delete your account, videos, comments and all data? This cannot be undone.")) return;
+    if (
+      !(await dialogs.confirm({
+        title: "Delete account",
+        message: "Permanently delete your account, videos, comments and all data? This cannot be undone.",
+        danger: true,
+        confirmLabel: "Delete forever",
+      }))
+    )
+      return;
     setError("");
     const res = await fetch("/api/me", {
       method: "DELETE",

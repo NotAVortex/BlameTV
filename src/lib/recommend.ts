@@ -28,11 +28,31 @@ function trendingScore(views: number, createdAt: Date): number {
   return views / Math.pow(ageHours + 2, 1.4);
 }
 
+function shuffle<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+async function randomPublicIds(pool: number, extraWhere: Record<string, unknown> = {}): Promise<string[]> {
+  const rows = await db.video.findMany({
+    where: { visibility: "PUBLIC", ...extraWhere },
+    select: { id: true },
+    take: 1000,
+  });
+  return shuffle(rows.map((r) => r.id)).slice(0, pool);
+}
+
+export async function randomPublicIdsInCategory(category: string, take: number): Promise<string[]> {
+  return randomPublicIds(take, { category });
+}
+
 export async function getTrending(limit = 24): Promise<ScoredVideo[]> {
+  const ids = await randomPublicIds(CANDIDATE_POOL);
   const candidates = await db.video.findMany({
-    where: { visibility: "PUBLIC" },
-    orderBy: { createdAt: "desc" },
-    take: CANDIDATE_POOL,
+    where: { visibility: "PUBLIC", id: { in: ids } },
     select: {
       id: true,
       title: true,
@@ -47,7 +67,7 @@ export async function getTrending(limit = 24): Promise<ScoredVideo[]> {
   });
 
   return candidates
-    .map((v) => ({ ...v, score: trendingScore(v.views, v.createdAt), reason: "Trending" }))
+    .map((v) => ({ ...v, score: trendingScore(v.views, v.createdAt) * (0.75 + Math.random() * 0.5), reason: "Trending" }))
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 }
@@ -62,10 +82,9 @@ export async function getRelatedVideos(
   });
   if (!current) return [];
 
+  const ids = await randomPublicIds(CANDIDATE_POOL, { id: { not: videoId } });
   const candidates = await db.video.findMany({
-    where: { visibility: "PUBLIC", id: { not: videoId } },
-    orderBy: { createdAt: "desc" },
-    take: CANDIDATE_POOL,
+    where: { visibility: "PUBLIC", id: { in: ids } },
     select: {
       id: true,
       title: true,
@@ -91,7 +110,7 @@ export async function getRelatedVideos(
       overlap * 3 +
       (v.category === current.category ? 2 : 0) +
       (v.ownerId === current.ownerId ? 1.5 : 0) +
-      trendingScore(v.views, v.createdAt) / 50;
+      (trendingScore(v.views, v.createdAt) / 50) * (0.75 + Math.random() * 0.5);
 
     const reason =
       overlap > 0
@@ -150,10 +169,9 @@ export async function getPersonalFeed(
     affinityCategories.set(item.category, (affinityCategories.get(item.category) ?? 0) + 1);
   }
 
+  const ids = await randomPublicIds(CANDIDATE_POOL);
   const candidates = await db.video.findMany({
-    where: { visibility: "PUBLIC" },
-    orderBy: { createdAt: "desc" },
-    take: CANDIDATE_POOL,
+    where: { visibility: "PUBLIC", id: { in: ids } },
     select: {
       id: true,
       title: true,
@@ -171,7 +189,7 @@ export async function getPersonalFeed(
   const maxTags = Math.max(1, ...affinityTags.values());
 
   const scored = candidates.map((v) => {
-    let score = trendingScore(v.views, v.createdAt) / 30;
+    let score = (trendingScore(v.views, v.createdAt) / 30) * (0.75 + Math.random() * 0.5);
 
     for (const t of tagSet(v.tags)) {
       score += ((affinityTags.get(t) ?? 0) / maxTags) * 4;
