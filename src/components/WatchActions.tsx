@@ -1,0 +1,131 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+export default function WatchActions({
+  videoId,
+  initialLikes,
+  initialDislikes,
+  initialMyLike,
+  isOwner,
+  loggedIn,
+}: {
+  videoId: string;
+  initialLikes: number;
+  initialDislikes: number;
+  initialMyLike: number;
+  isOwner: boolean;
+  loggedIn: boolean;
+}) {
+  const router = useRouter();
+  const [likes, setLikes] = useState(initialLikes);
+  const [dislikes, setDislikes] = useState(initialDislikes);
+  const [myLike, setMyLike] = useState(initialMyLike);
+  const [msg, setMsg] = useState("");
+  const [showReport, setShowReport] = useState(false);
+  const [reason, setReason] = useState("SPAM");
+  const [details, setDetails] = useState("");
+
+  async function like(value: 1 | -1) {
+    if (!loggedIn) return router.push("/login");
+    const next = myLike === value ? 0 : value;
+    const res = await fetch(`/api/videos/${videoId}/like`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ value: next }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setLikes(data.likes);
+      setDislikes(data.dislikes);
+      setMyLike(next);
+    }
+  }
+
+  async function saveToPlaylist() {
+    if (!loggedIn) return router.push("/login");
+    const name = prompt("Save to playlist — name (creates if new):");
+    if (!name) return;
+    const created = await fetch("/api/me/playlists", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, videoId }),
+    });
+    if (created.ok) setMsg("Saved to playlist ✓");
+  }
+
+  async function submitReport() {
+    const res = await fetch("/api/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason, details, videoId }),
+    });
+    setShowReport(false);
+    setMsg(res.ok ? "Report submitted — our team will review it." : "Report failed");
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center overflow-hidden rounded-full bg-[#272727]">
+        <button
+          onClick={() => like(1)}
+          className={`px-4 py-2 text-sm hover:bg-[#3f3f3f] ${myLike === 1 ? "text-[#3ea6ff]" : ""}`}
+        >
+          👍 {likes}
+        </button>
+        <span className="h-6 w-px bg-[#3f3f3f]" />
+        <button
+          onClick={() => like(-1)}
+          className={`px-4 py-2 text-sm hover:bg-[#3f3f3f] ${myLike === -1 ? "text-[#ff6b6b]" : ""}`}
+        >
+          👎 {dislikes}
+        </button>
+      </div>
+
+      {!isOwner && (
+        <button onClick={saveToPlaylist} className="btn-ghost">
+          ＋ Save
+        </button>
+      )}
+      {!isOwner && (
+        <button
+          onClick={() => (loggedIn ? setShowReport(true) : router.push("/login"))}
+          className="btn-ghost"
+        >
+          ⚑ Report
+        </button>
+      )}
+      {msg && <span className="text-xs text-[#3ea6ff]">{msg}</span>}
+
+      {showReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="card w-full max-w-md p-6">
+            <h3 className="mb-4 text-lg font-semibold">Report video</h3>
+            <select value={reason} onChange={(e) => setReason(e.target.value)} className="input mb-3">
+              <option value="SPAM">Spam or misleading</option>
+              <option value="HARASSMENT">Harassment or bullying</option>
+              <option value="HATE">Hate speech</option>
+              <option value="VIOLENCE">Violent or graphic</option>
+              <option value="COPYRIGHT">Copyright infringement</option>
+              <option value="MISINFORMATION">Misinformation</option>
+              <option value="OTHER">Other</option>
+            </select>
+            <textarea
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              placeholder="Optional details (max 2000 chars)"
+              maxLength={2000}
+              rows={3}
+              className="input mb-4"
+            />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowReport(false)} className="btn-ghost">Cancel</button>
+              <button onClick={submitReport} className="btn-primary">Submit report</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
