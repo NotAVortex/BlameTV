@@ -45,17 +45,26 @@ export function timeAgo(date: Date | string): string {
 
 export default function VideoCard({ video }: { video: VideoCardData }) {
   return (
-    <div className="group">
+    <div className="group transition-transform duration-200 hover:-translate-y-0.5">
       <Link href={`/watch/${video.id}`} className="block">
         <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-[#212121]">
           {video.thumbnailUrl ? (
             <img
               src={video.thumbnailUrl}
               alt=""
-              className="h-full w-full object-cover transition-transform group-hover:scale-[1.03]"
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-3xl">🎬</div>
+            <div className="flex h-full w-full items-center justify-center text-[#555555]">
+              <svg
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="h-10 w-10"
+                aria-hidden="true"
+              >
+                <path d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+              </svg>
+            </div>
           )}
           {video.durationSec > 0 && (
             <span className="absolute bottom-1.5 right-1.5 rounded bg-black/80 px-1.5 py-0.5 text-xs font-medium">

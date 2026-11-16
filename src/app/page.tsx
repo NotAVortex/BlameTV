@@ -61,7 +61,7 @@ export default async function HomePage({
         <h1 className="mb-4 text-lg font-semibold">
           Recommended for you
           <span className="ml-2 rounded-full bg-[#272727] px-2 py-0.5 text-xs font-normal text-[#aaaaaa]">
-            ✨ personalized
+            personalized
           </span>
         </h1>
       )}
@@ -69,7 +69,7 @@ export default async function HomePage({
         {feed.map((v) => (
           <div key={v.id}>
             <VideoCard video={v} />
-            {v.reason && <p className="mt-1 text-[11px] text-[#717171]">✨ {v.reason}</p>}
+            {v.reason && <p className="mt-1 text-[11px] text-[#717171]">{v.reason}</p>}
           </div>
         ))}
       </div>

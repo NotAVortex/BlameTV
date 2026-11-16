@@ -6,7 +6,7 @@ import { sessionSecret } from "./secret";
 const secret = new TextEncoder().encode(sessionSecret());
 
 const COOKIE_NAME = "blametv_session";
-const SESSION_DAYS = 7;
+const SESSION_DAYS = 30;
 
 export type SessionUser = {
   id: string;

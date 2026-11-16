@@ -12,14 +12,14 @@ export default function AboutPage() {
       </p>
 
       <div className="mt-8 space-y-6 text-sm leading-6 text-[#d4d4d4] [&_h2]:mt-8 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:text-[#f1f1f1] [&_li]:ml-5 [&_li]:list-disc">
-        <h2>🎬 Watching</h2>
+        <h2>Watching</h2>
         <ul>
           <li><strong>No account needed to watch.</strong> Anyone can browse, search and watch public videos — signed in or not.</li>
           <li>The home feed shows <strong>Trending</strong> for anonymous visitors and <strong>Recommended</strong> for signed-in users.</li>
           <li>Category chips at the top filter the feed by topic.</li>
         </ul>
 
-        <h2>✨ The recommendation algorithm</h2>
+        <h2>The recommendation algorithm</h2>
         <p>BlameTV uses a transparent scoring system — no black box. Every candidate video gets a score:</p>
         <ul>
           <li><strong>Trending score:</strong> views ÷ (age in hours + 2)<sup>1.4</sup> — fresh popular videos rank higher than old viral ones.</li>
