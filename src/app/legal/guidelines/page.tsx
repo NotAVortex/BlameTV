@@ -1,4 +1,5 @@
 import LegalLayout from "../layout-base";
+import { SITE } from "@/lib/site";
 
 export const metadata = { title: "Community Guidelines — BlameTV" };
 
@@ -38,7 +39,7 @@ export default function GuidelinesPage() {
       <h2>Appeals</h2>
       <p>
         If your content was removed and you believe it was a mistake, contact
-        appeals@blametv.example with the video title and reason.
+        {SITE.appealsEmail} with the video title and reason.
       </p>
     </LegalLayout>
   );

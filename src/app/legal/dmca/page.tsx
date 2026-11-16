@@ -1,4 +1,5 @@
 import LegalLayout from "../layout-base";
+import { SITE } from "@/lib/site";
 
 export const metadata = { title: "Copyright / DMCA — BlameTV" };
 
@@ -11,7 +12,7 @@ export default function DmcaPage() {
       </p>
 
       <h2>Filing a takedown notice</h2>
-      <p>If you believe content on BlameTV infringes your copyright, send a notice to dmca@blametv.example containing:</p>
+      <p>If you believe content on BlameTV infringes your copyright, send a notice to {SITE.dmcaEmail} containing:</p>
       <ul>
         <li>Your full name, address, phone number and email.</li>
         <li>A description of the copyrighted work you claim is infringed.</li>
@@ -31,7 +32,7 @@ export default function DmcaPage() {
       <h2>Counter-notification</h2>
       <p>
         If your content was removed by mistake or misidentification, you may submit a
-        counter-notice to dmca@blametv.example with the same contact details, identification of the
+        counter-notice to {SITE.dmcaEmail} with the same contact details, identification of the
         removed content, and a statement under penalty of perjury that you have a good-faith belief
         it was removed in error.
       </p>

@@ -1,10 +1,9 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { db } from "./db";
+import { sessionSecret } from "./secret";
 
-const secret = new TextEncoder().encode(
-  process.env.SESSION_SECRET ?? "insecure-dev-secret"
-);
+const secret = new TextEncoder().encode(sessionSecret());
 
 const COOKIE_NAME = "blametv_session";
 const SESSION_DAYS = 7;

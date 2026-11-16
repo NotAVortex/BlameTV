@@ -8,7 +8,9 @@
     "start": "next start -p ${PORT:-3000}",
     "lint": "eslint",
     "db:push": "prisma db push",
-    "db:seed": "node prisma/seed.mjs"
+    "db:seed": "node prisma/seed.mjs",
+    "postinstall": "prisma generate",
+    "setup": "prisma db push"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

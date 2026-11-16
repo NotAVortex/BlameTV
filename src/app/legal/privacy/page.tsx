@@ -1,4 +1,5 @@
 import LegalLayout from "../layout-base";
+import { SITE } from "@/lib/site";
 
 export const metadata = { title: "Privacy Policy — BlameTV" };
 
@@ -53,7 +54,7 @@ export default function PrivacyPage() {
       </p>
 
       <h2>Contact</h2>
-      <p>Privacy questions: privacy@blametv.example</p>
+      <p>Privacy questions: {SITE.privacyEmail}</p>
     </LegalLayout>
   );
 }

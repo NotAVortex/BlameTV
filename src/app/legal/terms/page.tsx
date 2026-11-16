@@ -1,4 +1,5 @@
 import LegalLayout from "../layout-base";
+import { SITE } from "@/lib/site";
 
 export const metadata = { title: "Terms of Service — BlameTV" };
 
@@ -62,7 +63,7 @@ export default function TermsPage() {
       </p>
 
       <h2>7. Contact</h2>
-      <p>Questions about these terms: legal@blametv.example</p>
+      <p>Questions about these terms: {SITE.contactEmail}</p>
     </LegalLayout>
   );
 }
