@@ -35,10 +35,8 @@ export default function Header({ user }: { user: SessionUser | null }) {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center gap-4 bg-[#0f0f0f]/95 px-4 backdrop-blur">
-      <Link href="/" className="flex items-center gap-1.5 shrink-0">
-        <span className="flex h-6 w-9 items-center justify-center rounded-md bg-[#ff3b3b]">
-          <span className="ml-0.5 border-y-[5px] border-l-[8px] border-y-transparent border-l-white" />
-        </span>
+      <Link href="/" className="flex items-center gap-2 shrink-0">
+        <img src="/blametv-logo.png" alt="BlameTV logo" className="h-7 w-auto" />
         <span className="text-lg font-bold tracking-tight">BlameTV</span>
       </Link>
 
