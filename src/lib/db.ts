@@ -16,6 +16,11 @@ function databaseUrl(): string {
   return url;
 }
 
+export function insensitive() {
+  const url = process.env.DATABASE_URL;
+  return url && !url.startsWith("file:") ? { mode: "insensitive" as const } : {};
+}
+
 export const db =
   globalForPrisma.prisma ??
   new PrismaClient({

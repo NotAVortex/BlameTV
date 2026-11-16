@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { db, insensitive } from "@/lib/db";
 import { getSessionUser, requireUser } from "@/lib/auth";
 import { videoMetaSchema } from "@/lib/validation";
 import { saveUpload, UploadError } from "@/lib/storage";
@@ -19,9 +19,9 @@ export async function GET(req: Request) {
       ...(q
         ? {
             OR: [
-              { title: { contains: q } },
-              { description: { contains: q } },
-              { tags: { contains: q } },
+              { title: { contains: q, ...insensitive() } },
+              { description: { contains: q, ...insensitive() } },
+              { tags: { contains: q, ...insensitive() } },
             ],
           }
         : {}),

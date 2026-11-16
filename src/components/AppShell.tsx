@@ -138,6 +138,11 @@ export default function AppShell({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [sug, setSug] = useState<{
+    videos: { id: string; title: string; thumbnailUrl: string | null }[];
+    users: { username: string; displayName: string; avatarUrl: string | null }[];
+  } | null>(null);
+  const [sugOpen, setSugOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -149,6 +154,28 @@ export default function AppShell({
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
+
+  useEffect(() => {
+    const q = query.trim();
+    const t = setTimeout(() => {
+      if (q.length < 2) {
+        setSug(null);
+        return;
+      }
+      fetch(`/api/search/suggest?q=${encodeURIComponent(q)}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => d && setSug(d))
+        .catch(() => {});
+    }, 200);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  function go(path: string) {
+    setSugOpen(false);
+    setQuery("");
+    setSug(null);
+    router.push(path);
+  }
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -180,22 +207,66 @@ export default function AppShell({
         >
           <Icon name="search" />
         </Link>
-        <form onSubmit={search} className="mx-auto hidden w-full max-w-xl sm:flex">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search"
-            maxLength={100}
-            className="w-full rounded-l-full border border-[#303030] bg-[#121212] px-4 py-1.5 text-sm outline-none transition-colors focus:border-[#3ea6ff]"
-          />
-          <button
-            type="submit"
-            aria-label="Search"
-            className="rounded-r-full border border-l-0 border-[#303030] bg-[#222222] px-4 text-[#aaaaaa] transition-colors hover:bg-[#303030] hover:text-white"
-          >
-            <Icon name="search" className="h-4 w-4" />
-          </button>
-        </form>
+        <div className="relative mx-auto hidden w-full max-w-xl sm:block">
+          <form onSubmit={search} className="flex">
+            <input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setSugOpen(true);
+              }}
+              onFocus={() => setSugOpen(true)}
+              onBlur={() => setTimeout(() => setSugOpen(false), 150)}
+              onKeyDown={(e) => e.key === "Escape" && setSugOpen(false)}
+              placeholder="Search videos and people"
+              maxLength={100}
+              className="w-full rounded-l-full border border-[#303030] bg-[#121212] px-4 py-1.5 text-sm outline-none transition-colors focus:border-[#3ea6ff]"
+            />
+            <button
+              type="submit"
+              aria-label="Search"
+              className="rounded-r-full border border-l-0 border-[#303030] bg-[#222222] px-4 text-[#aaaaaa] transition-colors hover:bg-[#303030] hover:text-white"
+            >
+              <Icon name="search" className="h-4 w-4" />
+            </button>
+          </form>
+          {sugOpen && sug && (sug.users.length > 0 || sug.videos.length > 0) && (
+            <div className="absolute inset-x-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-[#303030] bg-[#212121] py-1 shadow-2xl">
+              {sug.users.map((u) => (
+                <button
+                  key={`u-${u.username}`}
+                  type="button"
+                  onMouseDown={() => go(`/channel/${u.username}`)}
+                  className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-[#272727]"
+                >
+                  <span className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#3d3d3d]">
+                    {u.avatarUrl && <img src={u.avatarUrl} alt="" className="h-full w-full object-cover" />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{u.displayName}</span>
+                    <span className="block truncate text-xs text-[#aaaaaa]">@{u.username} · Channel</span>
+                  </span>
+                </button>
+              ))}
+              {sug.videos.map((v) => (
+                <button
+                  key={`v-${v.id}`}
+                  type="button"
+                  onMouseDown={() => go(`/watch/${v.id}`)}
+                  className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-[#272727]"
+                >
+                  <span className="relative block h-9 w-16 shrink-0 overflow-hidden rounded bg-[#3d3d3d]">
+                    {v.thumbnailUrl && <img src={v.thumbnailUrl} alt="" className="h-full w-full object-cover" />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm">{v.title}</span>
+                    <span className="block text-xs text-[#aaaaaa]">Video</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="flex shrink-0 items-center gap-2">
           {user ? (
             <>

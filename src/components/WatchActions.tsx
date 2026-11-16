@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { originalWatchUrl } from "@/lib/embed";
 
 function ThumbIcon({ down = false }: { down?: boolean }) {
   return (
@@ -21,6 +22,23 @@ function ThumbIcon({ down = false }: { down?: boolean }) {
   );
 }
 
+function DownloadIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-4 w-4"
+      aria-hidden="true"
+    >
+      <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16" />
+    </svg>
+  );
+}
+
 export default function WatchActions({
   videoId,
   initialLikes,
@@ -28,6 +46,8 @@ export default function WatchActions({
   initialMyLike,
   isOwner,
   loggedIn,
+  videoUrl,
+  embedUrl,
 }: {
   videoId: string;
   initialLikes: number;
@@ -35,6 +55,8 @@ export default function WatchActions({
   initialMyLike: number;
   isOwner: boolean;
   loggedIn: boolean;
+  videoUrl: string | null;
+  embedUrl: string | null;
 }) {
   const router = useRouter();
   const [likes, setLikes] = useState(initialLikes);
@@ -44,6 +66,7 @@ export default function WatchActions({
   const [showReport, setShowReport] = useState(false);
   const [reason, setReason] = useState("SPAM");
   const [details, setDetails] = useState("");
+  const original = embedUrl ? originalWatchUrl(embedUrl) : null;
 
   async function like(value: 1 | -1) {
     if (!loggedIn) return router.push("/login");
@@ -114,6 +137,25 @@ export default function WatchActions({
           ⚑ Report
         </button>
       )}
+      {videoUrl ? (
+        <a href={`/api/videos/${videoId}/download`} className="btn-ghost">
+          <span className="flex items-center gap-2">
+            <DownloadIcon /> Download
+          </span>
+        </a>
+      ) : embedUrl && original ? (
+        <a
+          href={original}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Embedded videos play from the original platform, so BlameTV cannot offer a direct download. Use the original platform's own download option if it has one."
+          className="btn-ghost"
+        >
+          <span className="flex items-center gap-2">
+            <DownloadIcon /> Open original
+          </span>
+        </a>
+      ) : null}
       {msg && <span className="text-xs text-[#3ea6ff]">{msg}</span>}
 
       {showReport && (

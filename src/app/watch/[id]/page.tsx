@@ -131,6 +131,8 @@ export default async function WatchPage({
             initialMyLike={myLike?.value ?? 0}
             isOwner={isOwner}
             loggedIn={!!user}
+            videoUrl={video.videoUrl}
+            embedUrl={video.embedUrl}
           />
         </div>
 

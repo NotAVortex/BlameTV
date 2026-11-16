@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { db, insensitive } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { fail, handleError, ok } from "@/lib/api";
@@ -31,7 +31,10 @@ export async function GET(req: Request) {
     if (platform === "blametv") {
       const users = await db.user.findMany({
         where: {
-          OR: [{ username: { contains: q } }, { displayName: { contains: q } }],
+          OR: [
+            { username: { contains: q, ...insensitive() } },
+            { displayName: { contains: q, ...insensitive() } },
+          ],
         },
         orderBy: { createdAt: "desc" },
         take: 10,

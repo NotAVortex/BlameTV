@@ -161,3 +161,31 @@ export async function fetchEmbedMeta(
     return null;
   }
 }
+
+export function originalWatchUrl(embedUrl: string): string | null {
+  try {
+    const u = new URL(embedUrl);
+    if (u.hostname.endsWith("youtube-nocookie.com") || u.hostname.endsWith("youtube.com")) {
+      const id = u.pathname.split("/").pop();
+      return id ? `https://www.youtube.com/watch?v=${id}` : null;
+    }
+    if (u.hostname.endsWith("vimeo.com")) {
+      const id = u.pathname.split("/").pop();
+      return id ? `https://vimeo.com/${id}` : null;
+    }
+    if (u.hostname.endsWith("dailymotion.com")) {
+      const id = u.pathname.replace(/^\/(embed\/video\/|embed\/)/, "").split("/")[0];
+      return id ? `https://www.dailymotion.com/video/${id}` : null;
+    }
+    if (u.hostname.endsWith("twitch.tv")) {
+      return `https://www.twitch.tv/${u.pathname.replace(/^\/embed\//, "")}`;
+    }
+    if (u.hostname.endsWith("streamable.com")) {
+      const id = u.pathname.replace(/^\/e\//, "").split("/")[0];
+      return id ? `https://streamable.com/${id}` : null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}

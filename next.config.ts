@@ -11,7 +11,7 @@ const securityHeaders = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' https://i.ytimg.com https://www.dailymotion.com https://*.dmcdn.net https://vumbnail.com https://khpzskndakhbsdyhobgm.supabase.co data: blob:",
+      "img-src 'self' https://i.ytimg.com https://yt3.ggpht.com https://yt3.googleusercontent.com https://www.dailymotion.com https://*.dmcdn.net https://vumbnail.com https://khpzskndakhbsdyhobgm.supabase.co data: blob:",
       "media-src 'self' blob: https://khpzskndakhbsdyhobgm.supabase.co",
       "frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.dailymotion.com https://player.twitch.tv https://streamable.com",
       "connect-src 'self'",

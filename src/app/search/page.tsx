@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
+import { db, insensitive } from "@/lib/db";
 import VideoCard from "@/components/VideoCard";
 import SearchBox from "@/components/SearchBox";
 
@@ -18,9 +18,9 @@ export default async function SearchPage({
         where: {
           visibility: "PUBLIC",
           OR: [
-            { title: { contains: query } },
-            { description: { contains: query } },
-            { tags: { contains: query } },
+            { title: { contains: query, ...insensitive() } },
+            { description: { contains: query, ...insensitive() } },
+            { tags: { contains: query, ...insensitive() } },
           ],
         },
         orderBy: sort === "views" ? { views: "desc" } : { createdAt: "desc" },
@@ -41,8 +41,8 @@ export default async function SearchPage({
     ? await db.user.findMany({
         where: {
           OR: [
-            { username: { contains: query } },
-            { displayName: { contains: query } },
+            { username: { contains: query, ...insensitive() } },
+            { displayName: { contains: query, ...insensitive() } },
           ],
         },
         orderBy: { createdAt: "desc" },
