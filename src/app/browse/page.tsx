@@ -20,7 +20,7 @@ const PLATFORMS = [
   { id: "blametv", label: "BlameTV", placeholder: "Search BlameTV users" },
 ];
 
-type Step = "search" | "confirm" | "importing" | "done";
+type Step = "search" | "confirm" | "select" | "importing" | "done";
 
 export default function BrowsePage() {
   const router = useRouter();
@@ -40,6 +40,10 @@ export default function BrowsePage() {
   const [failed, setFailed] = useState(0);
   const [error, setError] = useState("");
   const [doneInfo, setDoneInfo] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [loadingVideos, setLoadingVideos] = useState(false);
+  const [mine, setMine] = useState("");
+  const [resolving, setResolving] = useState(false);
   const [view, setView] = useState<"import" | "creators">("import");
 
   useEffect(() => {
@@ -128,6 +132,128 @@ export default function BrowsePage() {
     void runSearch(target, "youtube", "channel");
   }
 
+  async function connectMine(e: React.FormEvent) {
+    e.preventDefault();
+    const raw = mine.trim();
+    if (!raw) return setError("Paste a video link or channel URL first");
+    setError("");
+    setResolving(true);
+    try {
+      let pendingChannel: BrowseChannel;
+      if (/youtu\.be\/|watch\?v=|\/shorts\//.test(raw)) {
+        const res = await fetch(`/api/browse?resolve=video&url=${encodeURIComponent(raw)}`);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return setError(data.error ?? "Could not find your channel from that link");
+        const ch = data.channel as
+          | { name: string | null; url: string | null; avatar: string | null }
+          | undefined;
+        if (!ch || (!ch.name && !ch.url)) {
+          return setError("Could not find the channel behind that video");
+        }
+        pendingChannel = {
+          id: ch.url ?? raw,
+          name: ch.name ?? "Your channel",
+          query: ch.url ?? raw,
+          avatar: ch.avatar ?? null,
+          platform: "youtube",
+        };
+      } else {
+        let query = raw;
+        let name = "Your channel";
+        const handle =
+          /youtube\.com\/@([A-Za-z0-9._-]{3,40})/.exec(raw)?.[1] ??
+          /^@([A-Za-z0-9._-]{3,40})$/.exec(raw)?.[1];
+        if (handle) {
+          query = `@${handle}`;
+          name = `@${handle}`;
+        } else if (/^https?:\/\//i.test(raw)) {
+          try {
+            const parsed = new URL(raw);
+            if (!/(^|\.)youtube\.com$/.test(parsed.hostname)) {
+              return setError("That does not look like a YouTube link");
+            }
+            query = `https://www.youtube.com${parsed.pathname.replace(
+              /\/(videos|featured|shorts|streams|playlists|community|about).*$/,
+              ""
+            )}`;
+          } catch {
+            return setError("That does not look like a YouTube link");
+          }
+        } else if (/^[A-Za-z0-9._-]{3,40}$/.test(raw)) {
+          query = `@${raw}`;
+          name = `@${raw}`;
+        } else {
+          return setError("Paste a YouTube video link, a channel URL, or an @handle");
+        }
+        pendingChannel = { id: query, name, query, avatar: null, platform: "youtube" };
+      }
+      setPending(pendingChannel);
+      setPendingVideos(null);
+      setConfirmRight(false);
+      setConfirmPermission(false);
+      setStep("confirm");
+    } finally {
+      setResolving(false);
+    }
+  }
+
+  function toggleVideo(url: string) {
+    setSelected((prev) =>
+      prev.includes(url) ? prev.filter((u) => u !== url) : [...prev, url]
+    );
+  }
+
+  async function chooseVideos() {
+    if (!pending) return;
+    setError("");
+    if (pendingVideos) {
+      setSelected(pendingVideos.map((v) => v.url));
+      setStep("select");
+      return;
+    }
+    setLoadingVideos(true);
+    try {
+      const res = await fetch(
+        `/api/browse?platform=${pending.platform}&channel=${encodeURIComponent(pending.query)}`
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Could not fetch the videos for this creator");
+        return;
+      }
+      const fetched = (data.videos ?? []) as BrowseVideo[];
+      if (fetched.length === 0) {
+        setError(
+          "This creator has no public videos to import. Their channel may be empty or their videos may not be public."
+        );
+        return;
+      }
+      const ch = data.channel as
+        | { name: string | null; url: string | null; avatar: string | null }
+        | undefined;
+      if (ch) {
+        setPending((p) =>
+          p
+            ? {
+                ...p,
+                name:
+                  p.name.startsWith("@") || p.name === "Your channel"
+                    ? ch.name ?? p.name
+                    : p.name,
+                avatar: p.avatar ?? ch.avatar ?? null,
+                query: ch.url ?? p.query,
+              }
+            : p
+        );
+      }
+      setPendingVideos(fetched);
+      setSelected(fetched.map((v) => v.url));
+      setStep("select");
+    } finally {
+      setLoadingVideos(false);
+    }
+  }
+
   function pickCreator(c: BrowseChannel) {
     setError("");
     if (c.platform === "blametv") {
@@ -142,31 +268,13 @@ export default function BrowsePage() {
   }
 
   async function startImport() {
-    if (!pending) return;
+    if (!pending || !pendingVideos) return;
+    const videos = pendingVideos.filter((v) => selected.includes(v.url));
+    if (videos.length === 0) return setError("Pick at least one video first");
     setStep("importing");
     setError("");
     setImported(0);
     setFailed(0);
-
-    let fetched: BrowseVideo[] = pendingVideos ?? [];
-    if (!pendingVideos) {
-      const res = await fetch(
-        `/api/browse?platform=${pending.platform}&channel=${encodeURIComponent(pending.query)}`
-      );
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setStep("confirm");
-        return setError(data.error ?? "Could not fetch the videos for this creator");
-      }
-      fetched = (data.videos ?? []) as BrowseVideo[];
-    }
-    const videos = fetched;
-    if (videos.length === 0) {
-      setStep("search");
-      return setError(
-        "This creator has no public videos to import. Their channel may be empty or their videos may not be public."
-      );
-    }
 
     setTotal(videos.length);
     let created = 0;
@@ -204,8 +312,10 @@ export default function BrowsePage() {
     setStep("done");
     setPending(null);
     setPendingVideos(null);
+    setSelected([]);
     setResults(null);
     setQuery("");
+    setMine("");
     router.refresh();
   }
 
@@ -215,6 +325,8 @@ export default function BrowsePage() {
     setPendingVideos(null);
     setConfirmRight(false);
     setConfirmPermission(false);
+    setSelected([]);
+    setMine("");
     setError("");
   }
 
@@ -260,10 +372,33 @@ export default function BrowsePage() {
       ) : (
       <>
       <p className="mb-6 text-sm text-[#aaaaaa]">
-        Search for a creator on a supported platform, confirm it is the right one, and BlameTV
-        embeds all of their public videos automatically. Titles and descriptions are filled in for
-        you.
+        Search for a creator on a supported platform, confirm it is the right one, then pick exactly
+        which videos to embed. Titles and descriptions are filled in for you.
       </p>
+
+      {step === "search" && (
+        <div className="card mb-6 space-y-3 p-6">
+          <p className="font-medium">Import your own YouTube channel</p>
+          <p className="text-xs text-[#aaaaaa]">
+            Paste a link to one of your videos or your channel URL. BlameTV finds your channel,
+            lists your uploads, and you choose which ones to embed. Google does not let other sites
+            read your YouTube recommendations, so BlameTV never asks for your Google password —
+            connecting works by link instead.
+          </p>
+          <form onSubmit={connectMine} className="flex flex-col gap-2 sm:flex-row">
+            <input
+              value={mine}
+              onChange={(e) => setMine(e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=... or youtube.com/@you"
+              maxLength={300}
+              className="input"
+            />
+            <button type="submit" disabled={resolving} className="btn-primary whitespace-nowrap">
+              {resolving ? "Looking up\u2026" : "Find my channel"}
+            </button>
+          </form>
+        </div>
+      )}
 
       {step === "search" && (
         <div className="card mb-6 space-y-4 p-6">
@@ -315,7 +450,7 @@ export default function BrowsePage() {
             </div>
             <p className="text-xs text-[#aaaaaa]">
               {mode === "playlist"
-                ? "Every public video in the playlist gets embedded, up to 100."
+                ? "Every public video in the playlist gets embedded, up to 250. You can untick any before importing."
                 : "Pick the exact creator from the results. BlameTV never imports anything until you confirm."}
             </p>
             <button type="submit" disabled={searching} className="btn-primary">
@@ -397,11 +532,74 @@ export default function BrowsePage() {
           </label>
           <div className="flex gap-2">
             <button
-              onClick={startImport}
-              disabled={!confirmRight || !confirmPermission}
+              onClick={chooseVideos}
+              disabled={!confirmRight || !confirmPermission || loadingVideos}
               className="btn-primary"
             >
-              Embed everything
+              {loadingVideos ? "Loading videos\u2026" : "Choose videos"}
+            </button>
+            <button onClick={backToSearch} className="btn">
+              Back
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === "select" && pending && pendingVideos && (
+        <div className="card space-y-4 p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold">{pending.name}</p>
+              <p className="text-xs text-[#aaaaaa]">
+                {pendingVideos.length} video{pendingVideos.length === 1 ? "" : "s"} found ·{" "}
+                {selected.length} selected
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setSelected(pendingVideos.map((v) => v.url))}
+                className="btn px-3 py-1 text-xs"
+              >
+                Select all
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelected([])}
+                className="btn px-3 py-1 text-xs"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+          <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+            {pendingVideos.map((v) => (
+              <label
+                key={v.url}
+                className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#272727] p-2 transition-colors hover:bg-[#1c1c1c]"
+              >
+                <input
+                  type="checkbox"
+                  checked={selected.includes(v.url)}
+                  onChange={() => toggleVideo(v.url)}
+                  className="h-4 w-4 shrink-0 accent-[#3ea6ff]"
+                />
+                <span className="h-11 w-20 shrink-0 overflow-hidden rounded-md bg-[#272727]">
+                  {v.thumbnail && (
+                    <img src={v.thumbnail} alt="" className="h-full w-full object-cover" />
+                  )}
+                </span>
+                <span className="min-w-0 truncate text-sm">{v.title}</span>
+              </label>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={startImport}
+              disabled={selected.length === 0}
+              className="btn-primary"
+            >
+              Import {selected.length} selected
             </button>
             <button onClick={backToSearch} className="btn">
               Back

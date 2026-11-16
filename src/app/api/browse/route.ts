@@ -1,8 +1,10 @@
 import { requireUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { fail, handleError, ok } from "@/lib/api";
+import { fetchYoutubeChannelMeta } from "@/lib/youtube-comments";
 
 export type BrowseVideo = { url: string; title: string; thumbnail: string | null };
+export type BrowseChannelMeta = { name: string | null; url: string | null; avatar: string | null };
 
 export async function GET(req: Request) {
   try {
@@ -12,6 +14,17 @@ export async function GET(req: Request) {
 
     const url = new URL(req.url);
     const platform = url.searchParams.get("platform") ?? "youtube";
+    const resolve = url.searchParams.get("resolve");
+    if (resolve === "video") {
+      const target = (url.searchParams.get("url") ?? "").trim().slice(0, 300);
+      const videoId = youtubeVideoId(target);
+      if (!videoId) return fail("Paste a YouTube video link", 422);
+      const meta = await fetchYoutubeChannelMeta(videoId);
+      if (!meta.name && !meta.url) {
+        return fail("Could not find the channel behind that video", 404);
+      }
+      return ok({ channel: meta });
+    }
     const playlist = url.searchParams.get("playlist");
     if (playlist) {
       const videos = await browseYoutubePlaylist(playlist.trim().slice(0, 300));
@@ -21,8 +34,8 @@ export async function GET(req: Request) {
     if (!channel) return fail("Channel required", 422);
 
     if (platform === "youtube") {
-      const videos = await browseYoutube(channel);
-      return ok({ videos });
+      const result = await browseYoutube(channel);
+      return ok(result);
     }
     if (platform === "dailymotion") {
       const videos = await browseDailymotion(channel);
@@ -34,21 +47,40 @@ export async function GET(req: Request) {
   }
 }
 
-async function browseYoutube(channel: string): Promise<BrowseVideo[]> {
+function youtubeVideoId(input: string): string | null {
+  if (/^[A-Za-z0-9_-]{11}$/.test(input)) return input;
+  let parsed: URL;
+  try {
+    parsed = new URL(input);
+  } catch {
+    return null;
+  }
+  if (!/(^|\.)(youtube\.com|youtu\.be)$/.test(parsed.hostname)) return null;
+  if (parsed.hostname.endsWith("youtu.be")) {
+    const id = parsed.pathname.slice(1).split("/")[0];
+    return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+  }
+  const v = parsed.searchParams.get("v");
+  return v && /^[A-Za-z0-9_-]{11}$/.test(v) ? v : null;
+}
+
+async function browseYoutube(
+  channel: string
+): Promise<{ videos: BrowseVideo[]; channel: BrowseChannelMeta | null }> {
   let fetchUrl: string;
   if (/^https?:\/\//i.test(channel)) {
     let parsed: URL;
     try {
       parsed = new URL(channel);
     } catch {
-      return [];
+      return { videos: [], channel: null };
     }
-    if (!/(^|\.)youtube\.com$/.test(parsed.hostname)) return [];
+    if (!/(^|\.)youtube\.com$/.test(parsed.hostname)) return { videos: [], channel: null };
     const base = parsed.pathname.replace(/\/(videos|featured|shorts|streams|playlists|community|about).*$/, "");
     fetchUrl = `https://www.youtube.com${base}/videos?hl=en&gl=US`;
   } else {
     const handle = channel.replace(/^@/, "");
-    if (!/^[A-Za-z0-9._-]{3,40}$/.test(handle)) return [];
+    if (!/^[A-Za-z0-9._-]{3,40}$/.test(handle)) return { videos: [], channel: null };
     fetchUrl = `https://www.youtube.com/@${handle}/videos?hl=en&gl=US`;
   }
 
@@ -63,19 +95,19 @@ async function browseYoutube(channel: string): Promise<BrowseVideo[]> {
         cookie: "CONSENT=YES+cb",
       },
     });
-    if (!res.ok) return [];
+    if (!res.ok) return { videos: [], channel: null };
     html = await res.text();
   } catch {
-    return [];
+    return { videos: [], channel: null };
   }
 
   const match = /ytInitialData\s*=\s*(\{[\s\S]+?\});\s*<\/script>/.exec(html);
-  if (!match) return [];
+  if (!match) return { videos: [], channel: null };
   let data: unknown;
   try {
     data = JSON.parse(match[1]);
   } catch {
-    return [];
+    return { videos: [], channel: null };
   }
 
   type Item = { kind: "legacy" | "lockup"; value: Record<string, unknown> };
@@ -125,9 +157,48 @@ async function browseYoutube(channel: string): Promise<BrowseVideo[]> {
       title,
       thumbnail: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
     });
-    if (videos.length >= 100) break;
+    if (videos.length >= 250) break;
   }
-  return videos;
+  return { videos, channel: findChannelMeta(data) };
+}
+
+function findChannelMeta(node: unknown): BrowseChannelMeta | null {
+  if (!node || typeof node !== "object") return null;
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      const found = findChannelMeta(item);
+      if (found) return found;
+    }
+    return null;
+  }
+  const obj = node as Record<string, unknown>;
+  const meta = obj.channelMetadataRenderer;
+  if (meta && typeof meta === "object") {
+    const m = meta as Record<string, unknown>;
+    let avatar: string | null = null;
+    const thumbs = (m.avatar as Record<string, unknown> | undefined)?.thumbnails;
+    if (Array.isArray(thumbs) && thumbs.length > 0) {
+      const last = thumbs[thumbs.length - 1] as Record<string, unknown>;
+      if (typeof last?.url === "string") {
+        avatar = last.url.startsWith("//") ? `https:${last.url}` : last.url;
+      }
+    }
+    return {
+      name: typeof m.title === "string" ? m.title : null,
+      url:
+        typeof m.channelUrl === "string"
+          ? m.channelUrl
+          : typeof m.vanityChannelUrl === "string"
+            ? m.vanityChannelUrl
+            : null,
+      avatar,
+    };
+  }
+  for (const value of Object.values(obj)) {
+    const found = findChannelMeta(value);
+    if (found) return found;
+  }
+  return null;
 }
 
 function extractTitle(node: unknown): string {
@@ -234,7 +305,7 @@ async function browseYoutubePlaylist(input: string): Promise<BrowseVideo[]> {
       title,
       thumbnail: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
     });
-    if (videos.length >= 100) break;
+    if (videos.length >= 250) break;
   }
   return videos;
 }
@@ -244,7 +315,7 @@ async function browseDailymotion(username: string): Promise<BrowseVideo[]> {
   if (!/^[A-Za-z0-9._-]{3,40}$/.test(handle)) return [];
   try {
     const res = await fetch(
-      `https://api.dailymotion.com/user/${encodeURIComponent(handle)}/videos?fields=id,title,thumbnail_480_url&limit=25&sort=recent`,
+      `https://api.dailymotion.com/user/${encodeURIComponent(handle)}/videos?fields=id,title,thumbnail_480_url&limit=100&sort=recent`,
       { signal: AbortSignal.timeout(8000) }
     );
     if (!res.ok) return [];
@@ -253,7 +324,7 @@ async function browseDailymotion(username: string): Promise<BrowseVideo[]> {
     };
     return (data.list ?? [])
       .filter((v) => typeof v.id === "string")
-      .slice(0, 100)
+      .slice(0, 250)
       .map((v) => ({
         url: `https://www.dailymotion.com/video/${v.id}`,
         title: (v.title ?? "Untitled").slice(0, 140),
