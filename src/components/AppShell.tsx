@@ -29,6 +29,8 @@ const ICON_PATHS: Record<string, string> = {
     "M12 21a9 9 0 100-18 9 9 0 000 18zM14.8 9.2l-1.7 4-4 1.6 1.7-4 4-1.6z",
   subs:
     "M6 4.5v11.25A2.25 2.25 0 008.25 18h7.5a2.25 2.25 0 002.25-2.25V4.5M3 4.5v11.25A4.5 4.5 0 007.5 20.25h9a4.5 4.5 0 004.5-4.5V4.5M10.5 9l3 2.25-3 2.25V9z",
+  shorts:
+    "M8.25 3.75h7.5A2.25 2.25 0 0118 6v12a2.25 2.25 0 01-2.25 2.25h-7.5A2.25 2.25 0 016 18V6a2.25 2.25 0 012.25-2.25zM11.5 9.2l3.2 2.3-3.2 2.3V9.2z",
   play: "M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z",
 };
 
@@ -53,6 +55,7 @@ type NavItem = { href: string; label: string; icon: string };
 
 const MAIN_NAV: NavItem[] = [
   { href: "/", label: "Home", icon: "home" },
+  { href: "/shorts", label: "Shorts", icon: "shorts" },
   { href: "/subscriptions", label: "Subscriptions", icon: "subs" },
 ];
 

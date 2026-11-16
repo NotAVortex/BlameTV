@@ -262,3 +262,23 @@ export async function fetchYoutubeChannelMeta(
   }
   return result;
 }
+
+export async function detectYoutubeShort(videoId: string): Promise<boolean> {
+  try {
+    const res = await fetch(`https://www.youtube.com/watch?v=${videoId}&hl=en&gl=US`, {
+      redirect: "manual",
+      signal: AbortSignal.timeout(6000),
+      headers: {
+        "user-agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        "accept-language": "en-US,en;q=0.9",
+        cookie: "CONSENT=YES+cb",
+      },
+    });
+    if (res.status !== 301 && res.status !== 302 && res.status !== 303) return false;
+    const location = res.headers.get("location") ?? "";
+    return location.includes("/shorts/");
+  } catch {
+    return false;
+  }
+}

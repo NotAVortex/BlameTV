@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { profileSchema } from "@/lib/validation";
+import { profileSchema, linksSchema } from "@/lib/validation";
 import { saveUpload, deleteVideoFiles, UploadError } from "@/lib/storage";
 import { validateAnimation } from "@/lib/media";
 import { fail, handleError, ok } from "@/lib/api";
@@ -19,6 +19,12 @@ export async function GET() {
         avatarUrl: true,
         bannerUrl: true,
         role: true,
+        accentColor: true,
+        bgFrom: true,
+        bgTo: true,
+        pfpRing: true,
+        links: true,
+        hideSubscriptions: true,
         createdAt: true,
       },
     });
@@ -40,10 +46,26 @@ export async function PATCH(req: Request) {
       const avatar = form.get("avatar");
       const banner = form.get("banner");
 
-      const data: Record<string, string> = {};
+      const data: Record<string, string | boolean | null> = {};
       if (typeof displayName === "string" && displayName.trim())
         data.displayName = displayName.trim().slice(0, 50);
       if (typeof bio === "string") data.bio = bio.trim().slice(0, 1000);
+      for (const key of ["accentColor", "bgFrom", "bgTo", "pfpRing"] as const) {
+        const v = form.get(key);
+        if (typeof v !== "string") continue;
+        if (v === "") data[key] = null;
+        else if (/^#[0-9a-fA-F]{6}$/.test(v)) data[key] = v;
+      }
+      const hide = form.get("hideSubscriptions");
+      if (typeof hide === "string") data.hideSubscriptions = hide === "true";
+      const linksRaw = form.get("links");
+      if (typeof linksRaw === "string") {
+        try {
+          data.links = linksSchema.parse(JSON.parse(linksRaw));
+        } catch {
+          return fail("Links must be at most 5 entries, each with a label and an https:// URL", 422);
+        }
+      }
 
       try {
         if (avatar instanceof File && avatar.size > 0) {

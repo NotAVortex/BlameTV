@@ -12,8 +12,23 @@ type Me = {
   avatarUrl: string | null;
   bannerUrl: string | null;
   role: string;
+  accentColor: string | null;
+  bgFrom: string | null;
+  bgTo: string | null;
+  pfpRing: string | null;
+  links: string | null;
+  hideSubscriptions: boolean;
   createdAt: string;
 };
+
+const GRADIENT_PRESETS: [string, string, string][] = [
+  ["Sunset", "#ff5f6d", "#ffc371"],
+  ["Ocean", "#2193b0", "#6dd5ed"],
+  ["Forest", "#134e5e", "#71b280"],
+  ["Midnight", "#0f0c29", "#302b63"],
+  ["Candy", "#fc466b", "#3f5efb"],
+  ["Ember", "#f12711", "#f5af19"],
+];
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -29,6 +44,12 @@ export default function SettingsPage() {
   const dialogs = useDialogs();
   const [deletePassword, setDeletePassword] = useState("");
   const [storageOk, setStorageOk] = useState(true);
+  const [accentColor, setAccentColor] = useState("");
+  const [bgFrom, setBgFrom] = useState("");
+  const [bgTo, setBgTo] = useState("");
+  const [pfpRing, setPfpRing] = useState("");
+  const [hideSubs, setHideSubs] = useState(false);
+  const [links, setLinks] = useState<{ label: string; url: string }[]>([]);
   const [crop, setCrop] = useState<{
     kind: "avatar" | "banner";
     src: string;
@@ -148,6 +169,16 @@ export default function SettingsPage() {
         setMe(d.user);
         setDisplayName(d.user.displayName ?? "");
         setBio(d.user.bio ?? "");
+        setAccentColor(d.user.accentColor ?? "");
+        setBgFrom(d.user.bgFrom ?? "");
+        setBgTo(d.user.bgTo ?? "");
+        setPfpRing(d.user.pfpRing ?? "");
+        setHideSubs(Boolean(d.user.hideSubscriptions));
+        try {
+          setLinks(d.user.links ? JSON.parse(d.user.links) : []);
+        } catch {
+          setLinks([]);
+        }
       })
       .catch(() => {});
   }, []);
@@ -163,6 +194,12 @@ export default function SettingsPage() {
     const fd = new FormData();
     fd.set("displayName", displayName);
     fd.set("bio", bio);
+    fd.set("accentColor", accentColor);
+    fd.set("bgFrom", bgFrom);
+    fd.set("bgTo", bgTo);
+    fd.set("pfpRing", pfpRing);
+    fd.set("links", JSON.stringify(links));
+    fd.set("hideSubscriptions", hideSubs ? "true" : "false");
     if (avatarFile) fd.set("avatar", avatarFile);
     if (bannerFile) fd.set("banner", bannerFile);
 
@@ -225,7 +262,13 @@ export default function SettingsPage() {
           </p>
           <div
             className="h-28 w-full rounded-xl bg-gradient-to-r from-[#272727] to-[#3d3d3d] bg-cover bg-center"
-            style={bannerSrc ? { backgroundImage: `url(${bannerSrc})` } : undefined}
+            style={
+              bannerSrc
+                ? { backgroundImage: `url(${bannerSrc})` }
+                : bgFrom && bgTo
+                  ? { background: `linear-gradient(135deg, ${bgFrom}, ${bgTo})` }
+                  : undefined
+            }
           />
           <input
             type="file"
@@ -257,7 +300,10 @@ export default function SettingsPage() {
           <p className="mb-2 text-xs text-[#aaaaaa]">
             Profile picture — static image, or animated GIF / animated WebP up to 5 seconds (max 5 MB)
           </p>
-          <span className="inline-flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-[#3d3d3d] text-2xl font-bold">
+          <span
+            className="inline-flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-[#3d3d3d] text-2xl font-bold"
+            style={pfpRing ? { boxShadow: `0 0 0 3px ${pfpRing}` } : undefined}
+          >
             {avatarSrc ? (
               <img src={avatarSrc} alt="" className="h-full w-full object-cover" />
             ) : (
@@ -283,6 +329,161 @@ export default function SettingsPage() {
           <p className="mt-1 text-xs text-[#717171]">
             Static images open a drag-and-zoom editor. Animated GIFs are used as-is.
           </p>
+        </div>
+
+        <div className="mb-6 rounded-xl border border-[#272727] p-4">
+          <p className="mb-1 text-sm font-semibold">Channel style</p>
+          <p className="mb-4 text-xs text-[#aaaaaa]">
+            Your personal colors, shown on your channel page. The accent colors your buttons, the
+            gradient fills the banner area when you have no banner image, and the outline draws a
+            ring around your profile picture. Previews update live above.
+          </p>
+          <div className="space-y-4">
+            <div>
+              <p className="mb-1 text-xs text-[#aaaaaa]">Accent color</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={accentColor || "#3ea6ff"}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  className="h-9 w-12 cursor-pointer rounded border border-[#272727] bg-transparent"
+                  aria-label="Accent color"
+                />
+                <button type="button" onClick={() => setAccentColor("")} className="btn px-3 py-1 text-xs">
+                  No accent
+                </button>
+                {accentColor && <span className="text-xs text-[#aaaaaa]">{accentColor}</span>}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-1 text-xs text-[#aaaaaa]">Background gradient</p>
+              <div className="mb-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBgFrom("");
+                    setBgTo("");
+                  }}
+                  className={`h-8 rounded-lg border px-3 text-xs ${
+                    !bgFrom && !bgTo ? "border-[#f1f1f1]" : "border-[#272727]"
+                  }`}
+                >
+                  None
+                </button>
+                {GRADIENT_PRESETS.map(([name, from, to]) => (
+                  <button
+                    key={name}
+                    type="button"
+                    title={name}
+                    onClick={() => {
+                      setBgFrom(from);
+                      setBgTo(to);
+                    }}
+                    className={`h-8 w-14 rounded-lg border transition-transform duration-200 hover:scale-105 ${
+                      bgFrom === from && bgTo === to ? "border-[#f1f1f1]" : "border-[#272727]"
+                    }`}
+                    style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={bgFrom || "#0f0f0f"}
+                  onChange={(e) => setBgFrom(e.target.value)}
+                  className="h-9 w-12 cursor-pointer rounded border border-[#272727] bg-transparent"
+                  aria-label="Gradient start"
+                />
+                <span className="text-xs text-[#aaaaaa]">to</span>
+                <input
+                  type="color"
+                  value={bgTo || "#3d3d3d"}
+                  onChange={(e) => setBgTo(e.target.value)}
+                  className="h-9 w-12 cursor-pointer rounded border border-[#272727] bg-transparent"
+                  aria-label="Gradient end"
+                />
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-1 text-xs text-[#aaaaaa]">Profile picture outline</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={pfpRing || "#ff3b3b"}
+                  onChange={(e) => setPfpRing(e.target.value)}
+                  className="h-9 w-12 cursor-pointer rounded border border-[#272727] bg-transparent"
+                  aria-label="Profile picture outline"
+                />
+                <button type="button" onClick={() => setPfpRing("")} className="btn px-3 py-1 text-xs">
+                  No outline
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-1 text-xs text-[#aaaaaa]">
+                Profile links (up to 5) — shown on your channel page. Must start with https://
+              </p>
+              <div className="space-y-2">
+                {links.map((l, i) => (
+                  <div key={i} className="flex gap-2">
+                    <input
+                      value={l.label}
+                      onChange={(e) =>
+                        setLinks((prev) =>
+                          prev.map((x, j) => (j === i ? { ...x, label: e.target.value } : x))
+                        )
+                      }
+                      placeholder="Label (e.g. My website)"
+                      maxLength={50}
+                      className="input w-36 shrink-0 sm:w-44"
+                    />
+                    <input
+                      value={l.url}
+                      onChange={(e) =>
+                        setLinks((prev) =>
+                          prev.map((x, j) => (j === i ? { ...x, url: e.target.value } : x))
+                        )
+                      }
+                      placeholder="https://example.com/you"
+                      maxLength={300}
+                      className="input flex-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setLinks((prev) => prev.filter((_, j) => j !== i))}
+                      className="btn-ghost !px-2 !py-1 text-xs !text-[#ff6b6b]"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {links.length < 5 && (
+                <button
+                  type="button"
+                  onClick={() => setLinks((prev) => [...prev, { label: "", url: "" }])}
+                  className="btn mt-2 px-3 py-1 text-xs"
+                >
+                  Add link
+                </button>
+              )}
+            </div>
+
+            <label className="flex cursor-pointer items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={hideSubs}
+                onChange={(e) => setHideSubs(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-[#3ea6ff]"
+              />
+              <span>
+                Hide my subscriber count on my channel page. Other people will not see the number.
+              </span>
+            </label>
+          </div>
         </div>
 
         <div className="mb-4">

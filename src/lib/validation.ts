@@ -47,9 +47,33 @@ export const reportSchema = z.object({
   commentId: z.string().max(64).optional(),
 });
 
+const hexColor = z
+  .union([z.string().regex(/^#[0-9a-fA-F]{6}$/), z.literal("")])
+  .transform((v) => (v === "" ? null : v));
+
+export const linksSchema = z
+  .array(
+    z.object({
+      label: z.string().trim().min(1).max(50),
+      url: z
+        .string()
+        .trim()
+        .max(300)
+        .regex(/^https:\/\/\S+$/, "Links must start with https://"),
+    })
+  )
+  .max(5)
+  .transform((v) => (v.length === 0 ? null : JSON.stringify(v)));
+
 export const profileSchema = z.object({
   displayName: z.string().trim().min(1).max(50).optional(),
   bio: z.string().trim().max(1000).optional(),
+  accentColor: hexColor.optional(),
+  bgFrom: hexColor.optional(),
+  bgTo: hexColor.optional(),
+  pfpRing: hexColor.optional(),
+  links: linksSchema.optional(),
+  hideSubscriptions: z.boolean().optional(),
 });
 
 export const CATEGORIES = [

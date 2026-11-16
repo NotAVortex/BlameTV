@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { videoMetaSchema } from "@/lib/validation";
 import { fetchEmbedMeta, parseEmbedUrl, PROVIDER_LABELS } from "@/lib/embed";
 import {
+  detectYoutubeShort,
   fetchYoutubeChannelMeta,
   youtubeIdFromEmbedUrl,
 } from "@/lib/youtube-comments";
@@ -26,10 +27,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const fetched = await fetchEmbedMeta(embed.provider, rawUrl);
     const ytId =
       embed.provider === "YOUTUBE" ? youtubeIdFromEmbedUrl(embed.embedUrl) : null;
-    const channelMeta = ytId ? await fetchYoutubeChannelMeta(ytId) : null;
+    const [fetched, channelMeta, isShort] = await Promise.all([
+      fetchEmbedMeta(embed.provider, rawUrl),
+      ytId ? fetchYoutubeChannelMeta(ytId) : Promise.resolve(null),
+      ytId ? detectYoutubeShort(ytId) : Promise.resolve(false),
+    ]);
     const providerLabel = PROVIDER_LABELS[embed.provider] ?? embed.provider;
     const title =
       fetched?.title ??
@@ -58,6 +62,7 @@ export async function POST(req: Request) {
         sourceChannel: fetched?.author ?? channelMeta?.name,
         sourceChannelUrl: fetched?.authorUrl ?? channelMeta?.url,
         sourceChannelAvatar: channelMeta?.avatar,
+        isShort,
         ownerId: user.id,
       },
       select: { id: true },

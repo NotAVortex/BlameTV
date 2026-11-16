@@ -18,6 +18,12 @@ model User {
   bannerUrl      String?
   role           String    @default("USER")
   verified       Boolean   @default(false)
+  accentColor    String?
+  bgFrom         String?
+  bgTo           String?
+  pfpRing        String?
+  links          String?
+  hideSubscriptions Boolean @default(false)
   createdAt      DateTime  @default(now())
   videos         Video[]
   comments       Comment[]
@@ -30,6 +36,20 @@ model User {
   reports        Report[]  @relation("Reporter")
   notifications  Notification[]
   hypes          Hype[]
+  whispersSent     Whisper[] @relation("WhisperSender")
+  whispersReceived Whisper[] @relation("WhisperRecipient")
+}
+
+model Whisper {
+  id          String    @id @default(cuid())
+  body        String
+  senderId    String
+  sender      User      @relation("WhisperSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipientId String
+  recipient   User      @relation("WhisperRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@index([recipientId, createdAt])
 }
 
 model Video {
@@ -44,6 +64,7 @@ model Video {
   sourceChannel      String?
   sourceChannelUrl   String?
   sourceChannelAvatar String?
+  isShort        Boolean  @default(false)
   thumbnailUrl  String?
   visibility    String   @default("PUBLIC")
   durationSec   Int      @default(0)

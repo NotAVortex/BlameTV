@@ -117,6 +117,7 @@ export default async function WatchPage({
           bio: true,
           avatarUrl: true,
           verified: true,
+          hideSubscriptions: true,
           _count: { select: { subscribers: true } },
         },
       },
@@ -225,7 +226,9 @@ export default async function WatchPage({
                   <span>
                     Imported by {video.owner.displayName}
                     {video.owner.verified && <VerifiedBadge className="ml-1 inline h-3 w-3" />} ·{" "}
-                    {video.owner._count.subscribers} subscribers
+                    {video.owner.hideSubscriptions
+                      ? "subscribers hidden"
+                      : `${video.owner._count.subscribers} subscribers`}
                   </span>
                 </Link>
               </>
@@ -244,7 +247,9 @@ export default async function WatchPage({
                     {video.owner.verified && <VerifiedBadge />}
                   </span>
                   <span className="block text-xs text-[#aaaaaa]">
-                    {video.owner._count.subscribers} subscribers
+                    {video.owner.hideSubscriptions
+                      ? "Subscribers hidden"
+                      : `${video.owner._count.subscribers} subscribers`}
                   </span>
                 </span>
               </Link>
