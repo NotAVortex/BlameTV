@@ -82,7 +82,7 @@ export default function PlaylistsPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
-      <h1 className="mb-6 text-2xl font-bold">Your playlists</h1>
+      <h1 className="mb-6 break-words text-xl font-bold sm:text-2xl">Your playlists</h1>
 
       <div className="mb-8 flex gap-2">
         <input

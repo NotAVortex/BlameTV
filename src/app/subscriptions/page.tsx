@@ -11,7 +11,7 @@ export default async function SubscriptionsPage() {
   if (!user) {
     return (
       <div className="mx-auto max-w-xl px-6 py-20 text-center">
-        <h1 className="mb-3 text-2xl font-bold">Subscriptions</h1>
+        <h1 className="mb-3 text-xl font-bold sm:text-2xl">Subscriptions</h1>
         <p className="mb-6 text-sm text-[#aaaaaa]">
           Sign in to see the newest videos from the channels you follow.
         </p>

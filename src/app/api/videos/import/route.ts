@@ -23,9 +23,17 @@ export async function POST(req: Request) {
     const embed = parseEmbedUrl(rawUrl);
     if (!embed) {
       return fail(
-        "Unsupported or invalid link. Allowed: YouTube, Vimeo, Dailymotion, Twitch, Streamable",
+        "Unsupported or invalid link. Allowed: YouTube, Vimeo, Dailymotion, Twitch, Streamable, TikTok",
         422
       );
+    }
+
+    const dupe = await db.video.findFirst({
+      where: { embedUrl: embed.embedUrl },
+      select: { id: true },
+    });
+    if (dupe) {
+      return fail("This video is already on BlameTV", 409);
     }
 
     const ytId =

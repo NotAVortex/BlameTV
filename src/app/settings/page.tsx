@@ -251,7 +251,7 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-8">
-      <h1 className="mb-6 text-2xl font-bold">Settings</h1>
+      <h1 className="mb-6 break-words text-xl font-bold sm:text-2xl">Settings</h1>
 
       <section className="card mb-6 p-6">
         <h2 className="mb-4 text-lg font-semibold">Profile customization</h2>
@@ -301,7 +301,7 @@ export default function SettingsPage() {
             Profile picture — static image, or animated GIF / animated WebP up to 5 seconds (max 5 MB)
           </p>
           <span
-            className="inline-flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-[#3d3d3d] text-2xl font-bold"
+            className="inline-flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-[#3d3d3d] break-words text-xl font-bold sm:text-2xl"
             style={pfpRing ? { boxShadow: `0 0 0 3px ${pfpRing}` } : undefined}
           >
             {avatarSrc ? (

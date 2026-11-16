@@ -39,6 +39,9 @@ model User {
   whispersSent     Whisper[] @relation("WhisperSender")
   whispersReceived Whisper[] @relation("WhisperRecipient")
   lockedChannels  LockedChannel[]
+  communityPosts    CommunityPost[]        @relation("CommunityAuthor")
+  communityLikes    CommunityPostLike[]
+  communityComments CommunityPostComment[]
 }
 
 model LockedChannel {
@@ -51,6 +54,40 @@ model LockedChannel {
   createdAt  DateTime @default(now())
 
   @@unique([ownerId, channelKey])
+}
+
+model CommunityPost {
+  id        String   @id @default(cuid())
+  body      String
+  authorId  String
+  author    User     @relation("CommunityAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  likes     CommunityPostLike[]
+  comments  CommunityPostComment[]
+
+  @@index([authorId, createdAt])
+}
+
+model CommunityPostLike {
+  userId String
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId String
+  post   CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  value  Int
+
+  @@id([userId, postId])
+}
+
+model CommunityPostComment {
+  id        String        @id @default(cuid())
+  body      String
+  postId    String
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+
+  @@index([postId, createdAt])
 }
 
 model Whisper {

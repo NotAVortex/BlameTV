@@ -178,6 +178,53 @@ select {
   animation: fade-in 0.2s ease both;
 }
 
+@keyframes gradient-pan {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes ring-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px var(--ring-color, #3ea6ff);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px var(--ring-color, #3ea6ff),
+      0 0 12px 2px var(--ring-color, #3ea6ff);
+  }
+}
+
+@keyframes accent-glow {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.25);
+  }
+}
+
+.anim-gradient {
+  background-size: 200% 200%;
+  animation: gradient-pan 9s ease-in-out infinite;
+}
+
+.anim-ring {
+  animation: ring-glow 2.6s ease-in-out infinite;
+}
+
+.anim-accent {
+  animation: accent-glow 3s ease-in-out infinite;
+}
+
 .anim-slide-in {
   animation: slide-in-left 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
 }

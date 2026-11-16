@@ -34,7 +34,8 @@ export async function GET(req: Request) {
     if (!channel) return fail("Channel required", 422);
 
     if (platform === "youtube") {
-      const result = await browseYoutube(channel);
+      const shortsOnly = url.searchParams.get("mode") === "shorts";
+      const result = shortsOnly ? await browseYoutubeShorts(channel) : await browseYoutube(channel);
       return ok(result);
     }
     if (platform === "dailymotion") {
@@ -62,6 +63,101 @@ function youtubeVideoId(input: string): string | null {
   }
   const v = parsed.searchParams.get("v");
   return v && /^[A-Za-z0-9_-]{11}$/.test(v) ? v : null;
+}
+
+async function browseYoutubeShorts(
+  channel: string
+): Promise<{ videos: BrowseVideo[]; channel: BrowseChannelMeta | null }> {
+  let fetchUrl: string;
+  if (/^https?:\/\//i.test(channel)) {
+    let parsed: URL;
+    try {
+      parsed = new URL(channel);
+    } catch {
+      return { videos: [], channel: null };
+    }
+    if (!/(^|\.)youtube\.com$/.test(parsed.hostname)) return { videos: [], channel: null };
+    const base = parsed.pathname.replace(/\/(videos|featured|shorts|streams|playlists|community|about).*$/, "");
+    fetchUrl = `https://www.youtube.com${base}/shorts?hl=en&gl=US`;
+  } else {
+    const handle = channel.replace(/^@/, "");
+    if (!/^[A-Za-z0-9._-]{3,40}$/.test(handle)) return { videos: [], channel: null };
+    fetchUrl = `https://www.youtube.com/@${handle}/shorts?hl=en&gl=US`;
+  }
+
+  let html: string;
+  try {
+    const res = await fetch(fetchUrl, {
+      signal: AbortSignal.timeout(10000),
+      headers: {
+        "user-agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        "accept-language": "en-US,en;q=0.9",
+        cookie: "CONSENT=YES+cb",
+      },
+    });
+    if (!res.ok) return { videos: [], channel: null };
+    html = await res.text();
+  } catch {
+    return { videos: [], channel: null };
+  }
+
+  const match = /ytInitialData\s*=\s*(\{[\s\S]+?\});\s*<\/script>/.exec(html);
+  if (!match) return { videos: [], channel: null };
+  let data: unknown;
+  try {
+    data = JSON.parse(match[1]);
+  } catch {
+    return { videos: [], channel: null };
+  }
+
+  const seen = new Set<string>();
+  const videos: BrowseVideo[] = [];
+
+  const walk = (node: unknown, depth: number) => {
+    if (!node || depth > 40 || videos.length >= 250) return;
+    if (Array.isArray(node)) {
+      for (const item of node) walk(item, depth + 1);
+      return;
+    }
+    if (typeof node !== "object") return;
+    const obj = node as Record<string, unknown>;
+
+    const reel = obj.reelItemRenderer as Record<string, unknown> | undefined;
+    if (reel && typeof reel.videoId === "string" && !seen.has(reel.videoId)) {
+      seen.add(reel.videoId);
+      videos.push({
+        url: `https://www.youtube.com/watch?v=${reel.videoId}`,
+        title: extractTitle(reel.headline),
+        thumbnail: `https://i.ytimg.com/vi/${reel.videoId}/mqdefault.jpg`,
+      });
+    }
+
+    const lockup = obj.shortsLockupViewModel as Record<string, unknown> | undefined;
+    if (lockup) {
+      const videoId =
+        (
+          ((lockup.onTap as Record<string, unknown> | undefined)?.innertubeCommand as
+            | Record<string, unknown>
+            | undefined)?.reelWatchEndpoint as Record<string, unknown> | undefined
+        )?.videoId;
+      if (typeof videoId === "string" && !seen.has(videoId)) {
+        seen.add(videoId);
+        const overlay = lockup.overlayMetadata as Record<string, unknown> | undefined;
+        const primary = overlay?.primaryText as Record<string, unknown> | undefined;
+        videos.push({
+          url: `https://www.youtube.com/watch?v=${videoId}`,
+          title: typeof primary?.content === "string" ? primary.content.slice(0, 140) : "Short",
+          thumbnail: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
+        });
+      }
+    }
+
+    for (const value of Object.values(obj)) walk(value, depth + 1);
+  };
+  walk(data, 0);
+
+  return { videos, channel: findChannelMeta(data) };
 }
 
 async function browseYoutube(

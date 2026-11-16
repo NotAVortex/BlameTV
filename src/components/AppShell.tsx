@@ -11,6 +11,10 @@ const ICON_PATHS: Record<string, string> = {
   home: "M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75",
   upload:
     "M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5",
+  repost:
+    "M16.023 9.348h4.992V4.356m0 4.992l-3.181-3.183a8.25 8.25 0 00-13.803 3.7M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7",
+  refresh:
+    "M16.023 9.348h4.992V4.356m0 4.992l-3.181-3.183a8.25 8.25 0 00-13.803 3.7M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7",
   history: "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z",
   playlists:
     "M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z",
@@ -60,7 +64,7 @@ const MAIN_NAV: NavItem[] = [
 ];
 
 const LIBRARY_NAV: NavItem[] = [
-  { href: "/upload", label: "Add video", icon: "upload" },
+  { href: "/upload", label: "Repost", icon: "repost" },
   { href: "/browse", label: "Browse channels", icon: "browse" },
   { href: "/history", label: "History", icon: "history" },
   { href: "/playlists", label: "Playlists", icon: "playlists" },
@@ -74,8 +78,29 @@ function Logo({ onClick }: { onClick?: () => void }) {
   return (
     <Link href="/" onClick={onClick} className="flex items-center gap-2 shrink-0">
       <img src="/blametv-logo.png" alt="BlameTV logo" className="h-9 w-9" />
-      <span className="text-lg font-bold tracking-tight">BlameTV</span>
+      <span className="hidden text-lg font-bold tracking-tight sm:inline">BlameTV</span>
     </Link>
+  );
+}
+
+function RefreshButton() {
+  const router = useRouter();
+  const [spinning, setSpinning] = useState(false);
+  return (
+    <button
+      type="button"
+      aria-label="Refresh page"
+      title="Refresh"
+      onClick={() => {
+        if (spinning) return;
+        setSpinning(true);
+        router.refresh();
+        setTimeout(() => setSpinning(false), 600);
+      }}
+      className="rounded-full p-2 text-[#aaaaaa] transition-colors hover:bg-[#272727] hover:text-white"
+    >
+      <Icon name="refresh" className={`h-5 w-5 ${spinning ? "animate-spin" : ""}`} />
+    </button>
   );
 }
 
@@ -255,6 +280,7 @@ export default function AppShell({
           <Icon name="menu" />
         </button>
         <Logo />
+        <RefreshButton />
         <Link
           href="/search"
           aria-label="Search"
@@ -326,8 +352,8 @@ export default function AppShell({
           {user ? (
             <>
               <Link href="/upload" className="btn-ghost !py-1.5 text-xs">
-                <Icon name="upload" className="h-4 w-4" />
-                <span className="hidden sm:inline">Add video</span>
+                <Icon name="repost" className="h-4 w-4" />
+                <span className="hidden sm:inline">Repost</span>
               </Link>
               <div className="relative" ref={menuRef}>
                 <button

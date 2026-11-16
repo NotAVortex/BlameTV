@@ -50,7 +50,7 @@ export default function HistoryPage() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Watch history</h1>
+        <h1 className="text-xl font-bold sm:text-2xl">Watch history</h1>
         {history.length > 0 && (
           <button onClick={clearAll} className="btn-ghost text-xs !text-[#ff6b6b]">
             Clear all history

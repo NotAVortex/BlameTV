@@ -39,11 +39,20 @@ export async function POST(req: Request) {
     const created: string[] = [];
     const skipped: number[] = [];
     let blocked = 0;
+    let alreadyImported = 0;
 
     const importOne = async (rawUrl: string, index: number) => {
       const embed = parseEmbedUrl(rawUrl);
       if (!embed) {
         skipped.push(index);
+        return;
+      }
+      const existing = await db.video.findFirst({
+        where: { embedUrl: embed.embedUrl },
+        select: { id: true },
+      });
+      if (existing) {
+        alreadyImported += 1;
         return;
       }
       const ytId =
@@ -98,7 +107,13 @@ export async function POST(req: Request) {
     }
 
     return ok(
-      { created: created.length, ids: created, skipped: skipped.length, blocked },
+      {
+        created: created.length,
+        ids: created,
+        skipped: skipped.length,
+        blocked,
+        alreadyImported,
+      },
       201
     );
   } catch (err) {

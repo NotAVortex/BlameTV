@@ -216,7 +216,7 @@ export default async function WatchPage({
           <VideoPlayer src={video.videoUrl ?? ""} poster={video.thumbnailUrl} />
         )}
 
-        <h1 className="mt-4 text-xl font-bold">{video.title}</h1>
+        <h1 className="mt-4 break-words text-lg font-bold sm:text-xl">{video.title}</h1>
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
@@ -305,7 +305,7 @@ export default async function WatchPage({
         </div>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-[#aaaaaa]">
+          <p className="break-words text-xs text-[#aaaaaa] sm:text-sm">
             {formatViews(video.views)} views · {timeAgo(video.createdAt)} ·{" "}
             <span className="rounded-full bg-[#272727] px-2 py-0.5 text-xs">{video.category}</span>
             {video.source !== "UPLOAD" && (
@@ -397,7 +397,9 @@ export default async function WatchPage({
                   ? "Dailymotion"
                   : video.embedUrl && /twitch\.tv/.test(video.embedUrl)
                     ? "Twitch"
-                    : "Streamable"
+                    : video.embedUrl && /tiktok\.com/.test(video.embedUrl)
+                      ? "TikTok"
+                      : "Streamable"
           }
           platformSupported={
             !!video.embedUrl && /youtube(-nocookie)?\.com|youtu\.be/.test(video.embedUrl)

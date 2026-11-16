@@ -45,6 +45,7 @@ export default function BrowsePage() {
   const [mine, setMine] = useState("");
   const [resolving, setResolving] = useState(false);
   const [view, setView] = useState<"import" | "creators">("import");
+  const [scanKind, setScanKind] = useState<"videos" | "shorts">("videos");
 
   useEffect(() => {
     fetch("/api/me")
@@ -215,7 +216,9 @@ export default function BrowsePage() {
     setLoadingVideos(true);
     try {
       const res = await fetch(
-        `/api/browse?platform=${pending.platform}&channel=${encodeURIComponent(pending.query)}`
+        `/api/browse?platform=${pending.platform}&channel=${encodeURIComponent(pending.query)}${
+          pending.platform === "youtube" && scanKind === "shorts" ? "&mode=shorts" : ""
+        }`
       );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -225,7 +228,9 @@ export default function BrowsePage() {
       const fetched = (data.videos ?? []) as BrowseVideo[];
       if (fetched.length === 0) {
         setError(
-          "This creator has no public videos to import. Their channel may be empty or their videos may not be public."
+          scanKind === "shorts"
+            ? "No shorts found on this channel. Try the Videos tab instead."
+            : "This creator has no public videos to import. Their channel may be empty or their videos may not be public."
         );
         return;
       }
@@ -265,6 +270,7 @@ export default function BrowsePage() {
     setPendingVideos(null);
     setConfirmRight(false);
     setConfirmPermission(false);
+    setScanKind("videos");
     setStep("confirm");
   }
 
@@ -337,7 +343,7 @@ export default function BrowsePage() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
-      <h1 className="mb-2 text-2xl font-bold">Channel browser</h1>
+      <h1 className="mb-2 break-words text-xl font-bold sm:text-2xl">Channel browser</h1>
       <div className="mb-6 flex gap-2">
         <button
           type="button"
@@ -542,6 +548,34 @@ export default function BrowsePage() {
               reuse. I understand BlameTV only embeds the original player and hosts no video files.
             </span>
           </label>
+          {pending.platform === "youtube" && !pendingVideos && (
+            <div className="flex gap-2">
+              {(
+                [
+                  { id: "videos", label: "Videos" },
+                  { id: "shorts", label: "Shorts" },
+                ] as const
+              ).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setScanKind(t.id)}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                    scanKind === t.id
+                      ? "bg-[#f1f1f1] text-[#0f0f0f]"
+                      : "bg-[#272727] text-[#aaaaaa] hover:bg-[#3f3f3f]"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+              <span className="self-center text-xs text-[#717171]">
+                {scanKind === "shorts"
+                  ? "Scans only the channel\u2019s Shorts tab."
+                  : "Scans the channel\u2019s regular videos."}
+              </span>
+            </div>
+          )}
           <div className="flex gap-2">
             <button
               onClick={chooseVideos}

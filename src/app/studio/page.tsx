@@ -118,7 +118,7 @@ export default function StudioPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
-      <h1 className="mb-6 text-2xl font-bold">Studio</h1>
+      <h1 className="mb-6 break-words text-xl font-bold sm:text-2xl">Studio</h1>
 
       <div className="mb-6 flex gap-2">
         {tabs.map((t) => (

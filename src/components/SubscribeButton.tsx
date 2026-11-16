@@ -33,7 +33,7 @@ export default function SubscribeButton({
   if (isSelf) {
     return (
       <span className="rounded-full bg-[#272727] px-4 py-2 text-sm text-[#aaaaaa]">
-        {count} subscribers
+        Your channel
       </span>
     );
   }
@@ -41,10 +41,10 @@ export default function SubscribeButton({
   return (
     <button
       onClick={toggle}
-      className={`btn ${subscribed ? "bg-[#272727] text-[#f1f1f1] hover:bg-[#3f3f3f]" : "bg-[#f1f1f1] text-[#0f0f0f] hover:bg-white"}`}
+      className={`btn w-full sm:w-auto ${subscribed ? "bg-[#272727] text-[#f1f1f1] hover:bg-[#3f3f3f]" : "bg-[#f1f1f1] text-[#0f0f0f] hover:bg-white"}`}
     >
-      {subscribed ? "Subscribed ✓" : "Subscribe"}
-      <span className="ml-1 text-xs opacity-70">{count}</span>
+      {subscribed ? "Unsubscribe" : "Subscribe"}
+      <span className="sr-only">{count ? ` ${count} subscribers` : ""}</span>
     </button>
   );
 }

@@ -10,6 +10,9 @@ const ALLOWED_EMBED_HOSTS = new Set([
   "www.twitch.tv",
   "twitch.tv",
   "streamable.com",
+  "www.tiktok.com",
+  "tiktok.com",
+  "m.tiktok.com",
 ]);
 
 export type ParsedEmbed = {
@@ -119,6 +122,30 @@ export function parseEmbedUrl(raw: string): ParsedEmbed | null {
     return null;
   }
 
+  if (host === "tiktok.com") {
+    const video = /^\/@[A-Za-z0-9._-]{1,30}\/video\/(\d{10,25})/.exec(path);
+    if (video) {
+      return {
+        embedUrl: `https://www.tiktok.com/embed/v2/${video[1]}`,
+        thumbnailUrl: null,
+        provider: "TIKTOK",
+      };
+    }
+    return null;
+  }
+
+  if (host === "m.tiktok.com") {
+    const video = /^\/v\/(\d{10,25})/.exec(path);
+    if (video) {
+      return {
+        embedUrl: `https://www.tiktok.com/embed/v2/${video[1]}`,
+        thumbnailUrl: null,
+        provider: "TIKTOK",
+      };
+    }
+    return null;
+  }
+
   return null;
 }
 
@@ -127,6 +154,7 @@ const OEMBED_BY_PROVIDER: Record<string, (url: string) => string> = {
   VIMEO: (url) => `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(url)}`,
   DAILYMOTION: (url) => `https://www.dailymotion.com/services/oembed?url=${encodeURIComponent(url)}`,
   STREAMABLE: (url) => `https://api.streamable.com/oembed.json?url=${encodeURIComponent(url)}`,
+  TIKTOK: (url) => `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`,
 };
 
 export const PROVIDER_LABELS: Record<string, string> = {
@@ -135,6 +163,7 @@ export const PROVIDER_LABELS: Record<string, string> = {
   DAILYMOTION: "Dailymotion",
   TWITCH: "Twitch",
   STREAMABLE: "Streamable",
+  TIKTOK: "TikTok",
 };
 
 export async function fetchEmbedMeta(
@@ -191,6 +220,10 @@ export function originalWatchUrl(embedUrl: string): string | null {
     if (u.hostname.endsWith("streamable.com")) {
       const id = u.pathname.replace(/^\/e\//, "").split("/")[0];
       return id ? `https://streamable.com/${id}` : null;
+    }
+    if (u.hostname.endsWith("tiktok.com")) {
+      const id = u.pathname.split("/").pop();
+      return id && /^\d{10,25}$/.test(id) ? `https://m.tiktok.com/v/${id}.html` : null;
     }
     return null;
   } catch {
