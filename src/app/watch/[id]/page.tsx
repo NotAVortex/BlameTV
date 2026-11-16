@@ -11,6 +11,49 @@ import CommentsTabs from "@/components/CommentsTabs";
 import SubscribeButton from "@/components/SubscribeButton";
 import VideoPlayer from "@/components/VideoPlayer";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import { PROVIDER_LABELS } from "@/lib/embed";
+import {
+  fetchYoutubeChannelMeta,
+  youtubeIdFromEmbedUrl,
+} from "@/lib/youtube-comments";
+
+async function ensureSourceMeta(video: {
+  id: string;
+  source: string;
+  embedUrl: string | null;
+  description: string;
+  sourceChannel: string | null;
+  sourceChannelUrl: string | null;
+  sourceChannelAvatar: string | null;
+}): Promise<{ name: string | null; url: string | null; avatar: string | null }> {
+  const existing = {
+    name: video.sourceChannel,
+    url: video.sourceChannelUrl,
+    avatar: video.sourceChannelAvatar,
+  };
+  if (video.source === "UPLOAD" || !video.embedUrl) return existing;
+  if (video.sourceChannel || video.sourceChannelUrl) return existing;
+
+  const ytId = youtubeIdFromEmbedUrl(video.embedUrl);
+  const meta = ytId ? await fetchYoutubeChannelMeta(ytId) : null;
+  const descName =
+    /Imported from [^\u2022]+ \u2022 (.+)$/.exec(video.description)?.[1]?.trim() ?? null;
+  const name = meta?.name ?? (descName ? descName.slice(0, 100) : null);
+  const url = meta?.url ?? null;
+  const avatar = meta?.avatar ?? null;
+
+  if (name || url || avatar) {
+    await db.video.update({
+      where: { id: video.id },
+      data: {
+        sourceChannel: name ?? undefined,
+        sourceChannelUrl: url ?? undefined,
+        sourceChannelAvatar: avatar ?? undefined,
+      },
+    });
+  }
+  return { name, url, avatar };
+}
 
 export async function generateMetadata({
   params,
@@ -87,6 +130,8 @@ export default async function WatchPage({
   const isAdmin = user?.role === "ADMIN";
   if (video.visibility !== "PUBLIC" && !isOwner && !isAdmin) notFound();
 
+  const src = await ensureSourceMeta(video);
+
   const [myLike, likes, dislikes, subscribed, related, myHype, hypeCount] = await Promise.all([
     user
       ? db.videoLike.findUnique({
@@ -133,51 +178,78 @@ export default async function WatchPage({
 
         <h1 className="mt-4 text-xl font-bold">{video.title}</h1>
 
-        {video.sourceChannel && (
-          <a
-            href={
-              video.sourceChannelUrl ??
-              `https://www.youtube.com/results?search_query=${encodeURIComponent(video.sourceChannel)}`
-            }
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Visit the original channel that made this video"
-            className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#272727] px-3 py-1 text-xs text-[#aaaaaa] transition-colors hover:bg-[#3f3f3f] hover:text-[#f1f1f1]"
-          >
-            <span className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-[#3d3d3d] text-[10px] font-bold">
-              {video.sourceChannelAvatar ? (
-                <img
-                  src={video.sourceChannelAvatar}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                video.sourceChannel.charAt(0).toUpperCase()
-              )}
-            </span>
-            Originally by {video.sourceChannel}
-          </a>
-        )}
-
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <Link href={`/channel/${video.owner.username}`} className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#3d3d3d] font-bold">
-              {video.owner.avatarUrl ? (
-                <img src={video.owner.avatarUrl} alt="" className="h-full w-full object-cover" />
-              ) : (
-                video.owner.displayName.charAt(0).toUpperCase()
-              )}
-            </span>
-            <span>
-              <span className="flex items-center gap-1.5 text-sm font-semibold">
-                {video.owner.displayName}
-                {video.owner.verified && <VerifiedBadge />}
-              </span>
-              <span className="block text-xs text-[#aaaaaa]">
-                {video.owner._count.subscribers} subscribers
-              </span>
-            </span>
-          </Link>
+          <div className="min-w-0">
+            {src.name ? (
+              <>
+                <a
+                  href={
+                    src.url ??
+                    `https://www.youtube.com/results?search_query=${encodeURIComponent(src.name)}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Visit the original channel that made this video"
+                  className="flex items-center gap-3"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#3d3d3d] font-bold">
+                    {src.avatar ? (
+                      <img src={src.avatar} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      src.name.charAt(0).toUpperCase()
+                    )}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold">{src.name}</span>
+                    <span className="block text-xs text-[#aaaaaa]">
+                      Original creator on {PROVIDER_LABELS[video.source] ?? video.source} —
+                      visit channel
+                    </span>
+                  </span>
+                </a>
+                <Link
+                  href={`/channel/${video.owner.username}`}
+                  className="mt-1.5 flex items-center gap-2 text-xs text-[#717171] transition-colors hover:text-[#aaaaaa]"
+                >
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#3d3d3d] text-[10px] font-bold">
+                    {video.owner.avatarUrl ? (
+                      <img
+                        src={video.owner.avatarUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      video.owner.displayName.charAt(0).toUpperCase()
+                    )}
+                  </span>
+                  <span>
+                    Imported by {video.owner.displayName}
+                    {video.owner.verified && <VerifiedBadge className="ml-1 inline h-3 w-3" />} ·{" "}
+                    {video.owner._count.subscribers} subscribers
+                  </span>
+                </Link>
+              </>
+            ) : (
+              <Link href={`/channel/${video.owner.username}`} className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#3d3d3d] font-bold">
+                  {video.owner.avatarUrl ? (
+                    <img src={video.owner.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    video.owner.displayName.charAt(0).toUpperCase()
+                  )}
+                </span>
+                <span>
+                  <span className="flex items-center gap-1.5 text-sm font-semibold">
+                    {video.owner.displayName}
+                    {video.owner.verified && <VerifiedBadge />}
+                  </span>
+                  <span className="block text-xs text-[#aaaaaa]">
+                    {video.owner._count.subscribers} subscribers
+                  </span>
+                </span>
+              </Link>
+            )}
+          </div>
 
           <SubscribeButton
             username={video.owner.username}
