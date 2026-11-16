@@ -3,7 +3,6 @@ import { requireUser } from "@/lib/auth";
 import { videoMetaSchema } from "@/lib/validation";
 import { fetchEmbedMeta, parseEmbedUrl, PROVIDER_LABELS } from "@/lib/embed";
 import {
-  detectYoutubeShort,
   fetchYoutubeChannelMeta,
   youtubeChannelKey,
   youtubeIdFromEmbedUrl,
@@ -38,10 +37,10 @@ export async function POST(req: Request) {
 
     const ytId =
       embed.provider === "YOUTUBE" ? youtubeIdFromEmbedUrl(embed.embedUrl) : null;
-    const [fetched, channelMeta, isShort] = await Promise.all([
+    const isShort = /\/shorts\//.test(rawUrl);
+    const [fetched, channelMeta] = await Promise.all([
       fetchEmbedMeta(embed.provider, rawUrl),
       ytId ? fetchYoutubeChannelMeta(ytId) : Promise.resolve(null),
-      ytId ? detectYoutubeShort(ytId) : Promise.resolve(false),
     ]);
 
     const lockKeys = [

@@ -84,7 +84,6 @@ function Logo({ onClick }: { onClick?: () => void }) {
 }
 
 function RefreshButton() {
-  const router = useRouter();
   const [spinning, setSpinning] = useState(false);
   return (
     <button
@@ -94,8 +93,7 @@ function RefreshButton() {
       onClick={() => {
         if (spinning) return;
         setSpinning(true);
-        router.refresh();
-        setTimeout(() => setSpinning(false), 600);
+        window.location.reload();
       }}
       className="rounded-full p-2 text-[#aaaaaa] transition-colors hover:bg-[#272727] hover:text-white"
     >

@@ -2,11 +2,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { videoMetaSchema } from "@/lib/validation";
 import { fetchEmbedMeta, parseEmbedUrl, PROVIDER_LABELS } from "@/lib/embed";
-import {
-  detectYoutubeShort,
-  youtubeChannelKey,
-  youtubeIdFromEmbedUrl,
-} from "@/lib/youtube-comments";
+import { youtubeChannelKey } from "@/lib/youtube-comments";
 import { rateLimit } from "@/lib/rate-limit";
 import { fail, handleError, ok } from "@/lib/api";
 
@@ -35,13 +31,14 @@ export async function POST(req: Request) {
       typeof body?.channelAvatar === "string" && /^https:\/\//.test(body.channelAvatar)
         ? body.channelAvatar.slice(0, 500)
         : null;
+    const asShort = body?.asShort === true;
 
     const created: string[] = [];
     const skipped: number[] = [];
     let blocked = 0;
     let alreadyImported = 0;
 
-    const importOne = async (rawUrl: string, index: number) => {
+    const importOne = async (rawUrl: string, index: number, asShort: boolean) => {
       const embed = parseEmbedUrl(rawUrl);
       if (!embed) {
         skipped.push(index);
@@ -55,12 +52,8 @@ export async function POST(req: Request) {
         alreadyImported += 1;
         return;
       }
-      const ytId =
-        embed.provider === "YOUTUBE" ? youtubeIdFromEmbedUrl(embed.embedUrl) : null;
-      const [fetched, isShort] = await Promise.all([
-        fetchEmbedMeta(embed.provider, rawUrl),
-        ytId ? detectYoutubeShort(ytId) : Promise.resolve(false),
-      ]);
+      const isShort = asShort || /\/shorts\//.test(rawUrl);
+      const fetched = await fetchEmbedMeta(embed.provider, rawUrl);
       const lockKeys = [
         youtubeChannelKey(fetched?.authorUrl),
         youtubeChannelKey(channelUrl),
@@ -102,7 +95,7 @@ export async function POST(req: Request) {
 
     const BATCH = 4;
     for (let start = 0; start < urls.length; start += BATCH) {
-      const batch = urls.slice(start, start + BATCH).map((raw, i) => importOne(String(raw ?? ""), start + i));
+      const batch = urls.slice(start, start + BATCH).map((raw, i) => importOne(String(raw ?? ""), start + i, asShort));
       await Promise.allSettled(batch);
     }
 

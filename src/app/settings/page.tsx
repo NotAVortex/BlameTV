@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useDialogs } from "@/components/dialogs";
+import ColorPicker from "@/components/ColorPicker";
 
 type Me = {
   email: string;
@@ -342,16 +343,12 @@ export default function SettingsPage() {
             <div>
               <p className="mb-1 text-xs text-[#aaaaaa]">Accent color</p>
               <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={accentColor || "#3ea6ff"}
-                  onChange={(e) => setAccentColor(e.target.value)}
-                  className="h-9 w-12 cursor-pointer rounded border border-[#272727] bg-transparent"
-                  aria-label="Accent color"
+                <ColorPicker
+                  label="Accent color"
+                  value={accentColor}
+                  onChange={setAccentColor}
+                  onClear={() => setAccentColor("")}
                 />
-                <button type="button" onClick={() => setAccentColor("")} className="btn px-3 py-1 text-xs">
-                  No accent
-                </button>
                 {accentColor && <span className="text-xs text-[#aaaaaa]">{accentColor}</span>}
               </div>
             </div>
@@ -388,20 +385,18 @@ export default function SettingsPage() {
                 ))}
               </div>
               <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={bgFrom || "#0f0f0f"}
-                  onChange={(e) => setBgFrom(e.target.value)}
-                  className="h-9 w-12 cursor-pointer rounded border border-[#272727] bg-transparent"
-                  aria-label="Gradient start"
+                <ColorPicker
+                  label="Gradient start"
+                  value={bgFrom}
+                  onChange={setBgFrom}
+                  onClear={() => setBgFrom("")}
                 />
                 <span className="text-xs text-[#aaaaaa]">to</span>
-                <input
-                  type="color"
-                  value={bgTo || "#3d3d3d"}
-                  onChange={(e) => setBgTo(e.target.value)}
-                  className="h-9 w-12 cursor-pointer rounded border border-[#272727] bg-transparent"
-                  aria-label="Gradient end"
+                <ColorPicker
+                  label="Gradient end"
+                  value={bgTo}
+                  onChange={setBgTo}
+                  onClear={() => setBgTo("")}
                 />
               </div>
             </div>
@@ -409,16 +404,12 @@ export default function SettingsPage() {
             <div>
               <p className="mb-1 text-xs text-[#aaaaaa]">Profile picture outline</p>
               <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={pfpRing || "#ff3b3b"}
-                  onChange={(e) => setPfpRing(e.target.value)}
-                  className="h-9 w-12 cursor-pointer rounded border border-[#272727] bg-transparent"
-                  aria-label="Profile picture outline"
+                <ColorPicker
+                  label="Profile picture outline"
+                  value={pfpRing}
+                  onChange={setPfpRing}
+                  onClear={() => setPfpRing("")}
                 />
-                <button type="button" onClick={() => setPfpRing("")} className="btn px-3 py-1 text-xs">
-                  No outline
-                </button>
               </div>
             </div>
 

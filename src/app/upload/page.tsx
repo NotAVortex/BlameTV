@@ -101,6 +101,7 @@ export default function UploadPage() {
             urls: chunk,
             channelName: scanChannel?.name ?? null,
             channelUrl: scanChannel?.url ?? null,
+            asShort: true,
           }),
         });
         const d = await res.json().catch(() => ({}));

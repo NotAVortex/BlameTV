@@ -297,6 +297,7 @@ export default function BrowsePage() {
           channelName: pending.name,
           channelUrl: pending.platform === "youtube" ? pending.query : null,
           channelAvatar: pending.avatar,
+          asShort: pending.platform === "youtube" && scanKind === "shorts",
         }),
       });
       const data = await res.json().catch(() => ({}));
