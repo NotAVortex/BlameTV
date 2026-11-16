@@ -2,6 +2,7 @@
   "name": "blametv-desktop",
   "version": "1.0.0",
   "description": "BlameTV desktop app",
+  "author": "NotAVortex",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
