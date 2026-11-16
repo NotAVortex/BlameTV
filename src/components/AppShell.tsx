@@ -60,7 +60,7 @@ const EXTRA_NAV: NavItem[] = [{ href: "/about", label: "About", icon: "about" }]
 function Logo({ onClick }: { onClick?: () => void }) {
   return (
     <Link href="/" onClick={onClick} className="flex items-center gap-2 shrink-0">
-      <img src="/blametv-logo.png" alt="BlameTV logo" className="h-7 w-auto" />
+      <img src="/blametv-logo.png" alt="BlameTV logo" className="h-9 w-9" />
       <span className="text-lg font-bold tracking-tight">BlameTV</span>
     </Link>
   );

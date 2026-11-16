@@ -33,6 +33,11 @@ const EXT_BY_MIME: Record<string, string> = {
 
 export class UploadError extends Error {}
 
+export function storageAvailable(): boolean {
+  if (s3Config()) return true;
+  return process.env.VERCEL !== "1";
+}
+
 function s3Config() {
   const endpoint = process.env.S3_ENDPOINT;
   const bucket = process.env.S3_BUCKET;
@@ -94,14 +99,20 @@ export async function saveUpload(
         secretAccessKey: s3.secretAccessKey,
       },
     });
-    await client.send(
-      new PutObjectCommand({
-        Bucket: s3.bucket,
-        Key: name,
-        Body: buffer,
-        ContentType: file.type,
-      })
-    );
+    try {
+      await client.send(
+        new PutObjectCommand({
+          Bucket: s3.bucket,
+          Key: name,
+          Body: buffer,
+          ContentType: file.type,
+        })
+      );
+    } catch {
+      throw new UploadError(
+        "Upload storage rejected the file - check the storage settings (bucket, keys, endpoint)"
+      );
+    }
     return `${s3.publicBase.replace(/\/$/, "")}/${name}`;
   }
 

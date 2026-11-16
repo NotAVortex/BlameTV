@@ -1,12 +1,25 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CATEGORIES } from "@/lib/validation";
 
 export default function UploadPage() {
   const router = useRouter();
+  const [storageOk, setStorageOk] = useState(true);
   const [mode, setMode] = useState<"file" | "link">("file");
+
+  useEffect(() => {
+    fetch("/api/storage/status")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.available) {
+          setStorageOk(false);
+          setMode("link");
+        }
+      })
+      .catch(() => {});
+  }, []);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -86,18 +99,27 @@ export default function UploadPage() {
     <div className="mx-auto max-w-2xl px-6 py-8">
       <h1 className="mb-4 text-2xl font-bold">Add a video</h1>
 
+      {storageOk ? null : (
+        <div className="mb-6 rounded-xl border border-[#5a4a1f] bg-[#2a2312] px-4 py-3 text-sm text-[#ffd97a]">
+          File uploads are not available right now because video storage is not connected yet.
+          You can still add videos by importing them from YouTube, Vimeo and other platforms with
+          a link.
+        </div>
+      )}
+
       <div className="mb-6 flex gap-2">
         <button
-          onClick={() => setMode("file")}
-          className={`btn ${mode === "file" ? "bg-[#f1f1f1] text-[#0f0f0f]" : "bg-[#272727] hover:bg-[#3f3f3f]"}`}
+          onClick={() => storageOk && setMode("file")}
+          disabled={!storageOk}
+          className={`btn ${mode === "file" && storageOk ? "bg-[#f1f1f1] text-[#0f0f0f]" : "bg-[#272727] hover:bg-[#3f3f3f]"} ${!storageOk ? "cursor-not-allowed opacity-40" : ""}`}
         >
-          ⬆ Upload file
+          Upload file
         </button>
         <button
           onClick={() => setMode("link")}
           className={`btn ${mode === "link" ? "bg-[#f1f1f1] text-[#0f0f0f]" : "bg-[#272727] hover:bg-[#3f3f3f]"}`}
         >
-          🔗 Import from link
+          Import from link
         </button>
       </div>
 

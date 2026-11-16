@@ -26,8 +26,13 @@ export default function SettingsPage() {
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
+  const [storageOk, setStorageOk] = useState(true);
 
   useEffect(() => {
+    fetch("/api/storage/status")
+      .then((r) => r.json())
+      .then((d) => setStorageOk(Boolean(d.available)))
+      .catch(() => {});
     fetch("/api/me")
       .then(async (r) => {
         if (r.status === 401) {
@@ -112,13 +117,19 @@ export default function SettingsPage() {
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
+            disabled={!storageOk}
             onChange={(e) => {
               const f = e.target.files?.[0] ?? null;
               setBannerFile(f);
               preview(f, setBannerPreview);
             }}
-            className="input mt-2 file:mr-3 file:rounded-full file:border-0 file:bg-[#3f3f3f] file:px-4 file:py-1 file:text-sm file:text-white"
+            className="input mt-2 file:mr-3 file:rounded-full file:border-0 file:bg-[#3f3f3f] file:px-4 file:py-1 file:text-sm file:text-white disabled:opacity-40"
           />
+          {!storageOk && (
+            <p className="mt-1 text-xs text-[#ffd97a]">
+              Image uploads are not available right now because storage is not connected yet.
+            </p>
+          )}
         </div>
 
         <div className="mb-6">
@@ -135,12 +146,13 @@ export default function SettingsPage() {
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
+            disabled={!storageOk}
             onChange={(e) => {
               const f = e.target.files?.[0] ?? null;
               setAvatarFile(f);
               preview(f, setAvatarPreview);
             }}
-            className="input mt-2 file:mr-3 file:rounded-full file:border-0 file:bg-[#3f3f3f] file:px-4 file:py-1 file:text-sm file:text-white"
+            className="input mt-2 file:mr-3 file:rounded-full file:border-0 file:bg-[#3f3f3f] file:px-4 file:py-1 file:text-sm file:text-white disabled:opacity-40"
           />
         </div>
 

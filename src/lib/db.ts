@@ -10,7 +10,8 @@ function localSqliteUrl(): string {
 function databaseUrl(): string {
   const url = process.env.DATABASE_URL ?? localSqliteUrl();
   if (url.includes("pooler.supabase.com") && !url.includes("pgbouncer=true")) {
-    return url + (url.includes("?") ? "&" : "?") + "pgbouncer=true";
+    const sep = url.includes("?") ? "&" : "?";
+    return `${url}${sep}pgbouncer=true&connection_limit=1`;
   }
   return url;
 }
