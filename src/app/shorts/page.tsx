@@ -23,25 +23,26 @@ export default async function ShortsPage() {
     },
   });
 
-  return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <h1 className="mb-1 text-2xl font-bold">Shorts</h1>
-      <p className="mb-6 text-sm text-[#aaaaaa]">
-        Vertical videos, detected automatically when a short is imported from YouTube. Scroll or
-        swipe to the next one — when you reach the end, the feed reshuffles and keeps going forever.
-      </p>
-      {shorts.length === 0 ? (
+  if (shorts.length === 0) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
+        <h1 className="mb-1 text-xl font-bold sm:text-2xl">Shorts</h1>
+        <p className="mb-6 text-sm text-[#aaaaaa]">
+          Vertical videos imported from YouTube. Scroll or swipe to the next one — when you reach
+          the end, the feed reshuffles and keeps going forever.
+        </p>
         <div className="card p-8 text-center">
           <p className="text-sm text-[#aaaaaa]">
-            No shorts yet. Import a vertical video from YouTube and it appears here automatically.
+            No shorts yet. Repost a vertical video from YouTube (or use the shorts scan) and it
+            appears here automatically.
           </p>
-          <Link href="/browse" className="btn-primary mt-4 inline-block">
-            Import videos
+          <Link href="/upload" className="btn-primary mt-4 inline-block">
+            Repost videos
           </Link>
         </div>
-      ) : (
-        <ShortsFeed initial={shorts} loggedIn={!!viewer} />
-      )}
-    </div>
-  );
+      </div>
+    );
+  }
+
+  return <ShortsFeed initial={shorts} loggedIn={!!viewer} />;
 }
