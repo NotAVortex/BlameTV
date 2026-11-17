@@ -200,7 +200,7 @@ export default function ShortsFeed({
                 </div>
               )}
 
-              <div className="pointer-events-auto absolute bottom-20 right-2 z-10 flex flex-col items-center gap-3 sm:bottom-24 sm:right-3">
+              <div className="pointer-events-auto absolute bottom-20 left-2 z-10 flex flex-col items-center gap-3 sm:bottom-24 sm:left-3">
                 <Link
                   href={`/channel/${v.owner.username}`}
                   title={`Visit ${v.owner.displayName}`}
@@ -293,7 +293,7 @@ export default function ShortsFeed({
                 </button>
               </div>
 
-              <div className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-2 sm:right-3">
+              <div className="absolute left-2 top-[15%] z-10 flex flex-col gap-2 sm:left-3">
                 <button
                   type="button"
                   onClick={() => scrollToIndex(Math.max(active - 1, 0))}
