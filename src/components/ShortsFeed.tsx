@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { formatViews } from "@/components/VideoCard";
 
 type ShortItem = {
@@ -11,7 +12,10 @@ type ShortItem = {
   views: number;
   sourceChannel: string | null;
   sourceChannelUrl: string | null;
-  owner: { username: string; displayName: string };
+  likes: number;
+  dislikes: number;
+  myLike: number;
+  owner: { username: string; displayName: string; avatarUrl: string | null };
 };
 
 export default function ShortsFeed({
@@ -100,6 +104,30 @@ export default function ShortsFeed({
     return () => window.removeEventListener("pointerdown", unlock);
   }, [play]);
 
+  const router = useRouter();
+
+  async function vote(i: number, value: 1 | -1) {
+    const post = items[i];
+    if (!post) return;
+    if (!loggedIn) return router.push("/login");
+    const next = post.myLike === value ? 0 : value;
+    const res = await fetch(`/api/videos/${post.id}/like`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ value: next }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setItems((prev) =>
+        prev.map((p, idx) =>
+          idx === i || p.id === post.id
+            ? { ...p, likes: data.likes, dislikes: data.dislikes, myLike: idx === i ? next : p.myLike }
+            : p
+        )
+      );
+    }
+  }
+
   if (initial.length === 0) return null;
 
   return (
@@ -129,6 +157,52 @@ export default function ShortsFeed({
                   Video unavailable
                 </div>
               )}
+
+              <div className="pointer-events-auto absolute bottom-20 right-2 z-10 flex flex-col items-center gap-4 sm:bottom-24 sm:right-3">
+                <Link
+                  href={`/channel/${v.owner.username}`}
+                  title={`Visit ${v.owner.displayName}`}
+                  className="h-10 w-10 overflow-hidden rounded-full border-2 border-white/70 bg-[#3d3d3d] shadow-lg transition-transform hover:scale-110"
+                >
+                  {v.owner.avatarUrl ? (
+                    <img src={v.owner.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-sm font-bold text-white">
+                      {v.owner.displayName.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => vote(i, 1)}
+                  aria-label="Like"
+                  className={`flex flex-col items-center gap-1 transition-transform hover:scale-110 ${
+                    v.myLike === 1 ? "text-[#3ea6ff]" : "text-white"
+                  }`}
+                >
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 backdrop-blur">
+                    <svg viewBox="0 0 24 24" fill={v.myLike === 1 ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.8} className="h-5 w-5" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.633 10.25c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75 2.25 2.25 0 012.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282m0 0h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23H5.904m10.598-9.75H14.25M5.904 18.5c.083.205.173.405.27.602.197.4-.078.898-.523.898h-.908c-.889 0-1.713-.518-1.972-1.368a12 12 0 01-.521-3.507c0-1.553.295-3.036.831-4.398C3.387 9.953 4.167 9.5 5 9.5h1.053c.472 0 .745.556.5.96a8.958 8.958 0 00-1.302 4.665c0 1.194.232 2.333.654 3.375z" />
+                    </svg>
+                  </span>
+                  <span className="text-xs font-medium drop-shadow">{v.likes}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => vote(i, -1)}
+                  aria-label="Dislike"
+                  className={`flex flex-col items-center gap-1 transition-transform hover:scale-110 ${
+                    v.myLike === -1 ? "text-[#ff6b6b]" : "text-white"
+                  }`}
+                >
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 backdrop-blur">
+                    <svg viewBox="0 0 24 24" fill={v.myLike === -1 ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.8} className="h-5 w-5 rotate-180" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.633 10.25c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75 2.25 2.25 0 012.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282m0 0h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23H5.904m10.598-9.75H14.25M5.904 18.5c.083.205.173.405.27.602.197.4-.078.898-.523.898h-.908c-.889 0-1.713-.518-1.972-1.368a12 12 0 01-.521-3.507c0-1.553.295-3.036.831-4.398C3.387 9.953 4.167 9.5 5 9.5h1.053c.472 0 .745.556.5.96a8.958 8.958 0 00-1.302 4.665c0 1.194.232 2.333.654 3.375z" />
+                    </svg>
+                  </span>
+                  <span className="text-xs font-medium drop-shadow">{v.dislikes}</span>
+                </button>
+              </div>
 
               <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent px-4 pb-4 pt-16">
                 <Link

@@ -109,7 +109,14 @@ export default async function ChannelPage({
   ] as const;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+    <div
+      className={`relative min-h-[calc(100dvh-3.5rem)] ${
+        gradient ? "anim-gradient" : ""
+      }`}
+      style={gradient ? { background: gradient } : undefined}
+    >
+      {gradient && <div className="pointer-events-none absolute inset-0 bg-black/30" />}
+      <div className="relative mx-auto max-w-6xl px-4 py-6 sm:px-6">
       <div
         className={`h-32 w-full overflow-hidden rounded-xl bg-gradient-to-r from-[#272727] to-[#3d3d3d] bg-cover bg-center sm:h-48 ${
           !channel.bannerUrl && gradient ? "anim-gradient" : ""
@@ -141,7 +148,10 @@ export default async function ChannelPage({
           )}
         </span>
         <div className="min-w-0 flex-1">
-          <h1 className="flex flex-wrap items-center gap-2 break-words text-xl font-bold sm:text-2xl">
+          <h1
+            className="flex flex-wrap items-center gap-2 break-words text-xl font-bold sm:text-2xl"
+            style={channel.accentColor ? { color: channel.accentColor } : undefined}
+          >
             {channel.displayName}
             {channel.verified && <VerifiedBadge className="h-4 w-4 sm:h-5 sm:w-5" />}
           </h1>
@@ -244,6 +254,11 @@ export default async function ChannelPage({
                 ? "bg-[#f1f1f1] text-[#0f0f0f]"
                 : "bg-[#272727] text-[#aaaaaa] hover:bg-[#3f3f3f]"
             }`}
+            style={
+              tab === t.id && channel.accentColor
+                ? { background: channel.accentColor, color: "#0f0f0f" }
+                : undefined
+            }
           >
             {t.label}
           </Link>
@@ -305,6 +320,7 @@ export default async function ChannelPage({
           loggedIn={!!viewer}
           viewerUsername={viewer?.username ?? null}
         />
+      </div>
       </div>
     </div>
   );

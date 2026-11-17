@@ -19,9 +19,38 @@ export default async function ShortsPage() {
       views: true,
       sourceChannel: true,
       sourceChannelUrl: true,
-      owner: { select: { username: true, displayName: true } },
+      owner: { select: { username: true, displayName: true, avatarUrl: true } },
     },
   });
+
+  const ids = shorts.map((v) => v.id);
+  const [voteRows, myVotes] = viewer && ids.length > 0
+    ? await Promise.all([
+        db.videoLike.groupBy({
+          by: ["videoId", "value"],
+          where: { videoId: { in: ids } },
+          _count: { _all: true },
+        }),
+        db.videoLike.findMany({
+          where: { userId: viewer.id, videoId: { in: ids } },
+          select: { videoId: true, value: true },
+        }),
+      ])
+    : [[], []];
+  const likesByVideo = new Map<string, number>();
+  const dislikesByVideo = new Map<string, number>();
+  for (const row of voteRows) {
+    if (row.value === 1) likesByVideo.set(row.videoId, row._count._all);
+    if (row.value === -1) dislikesByVideo.set(row.videoId, row._count._all);
+  }
+  const myByVideo = new Map(myVotes.map((r) => [r.videoId, r.value]));
+
+  const feed = shorts.map((v) => ({
+    ...v,
+    likes: likesByVideo.get(v.id) ?? 0,
+    dislikes: dislikesByVideo.get(v.id) ?? 0,
+    myLike: myByVideo.get(v.id) ?? 0,
+  }));
 
   if (shorts.length === 0) {
     return (
@@ -44,5 +73,5 @@ export default async function ShortsPage() {
     );
   }
 
-  return <ShortsFeed initial={shorts} loggedIn={!!viewer} />;
+  return <ShortsFeed initial={feed} loggedIn={!!viewer} />;
 }
