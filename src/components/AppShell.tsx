@@ -79,6 +79,7 @@ function Logo({ onClick }: { onClick?: () => void }) {
     <Link href="/" onClick={onClick} className="flex items-center gap-2 shrink-0">
       <img src="/blametv-logo.png" alt="BlameTV logo" className="h-9 w-9" />
       <span className="hidden text-lg font-bold tracking-tight sm:inline">BlameTV</span>
+      <span className="rounded-full bg-[#3ea6ff]/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#3ea6ff]">Beta</span>
     </Link>
   );
 }

@@ -199,6 +199,25 @@ export async function fetchEmbedMeta(
   }
 }
 
+export function fixTwitchParent(embedUrl: string, host: string): string {
+  if (!embedUrl.includes("player.twitch.tv")) return embedUrl;
+  try {
+    const url = new URL(embedUrl);
+    url.searchParams.set("parent", host);
+    return url.toString();
+  } catch {
+    return embedUrl;
+  }
+}
+
+export function playerSrc(embedUrl: string, host: string): string {
+  const fixed = fixTwitchParent(embedUrl, host);
+  if (fixed.includes("youtube-nocookie.com/embed/") && !fixed.includes("?")) {
+    return `${fixed}?rel=0&playsinline=1`;
+  }
+  return fixed;
+}
+
 export function originalWatchUrl(embedUrl: string): string | null {
   try {
     const u = new URL(embedUrl);

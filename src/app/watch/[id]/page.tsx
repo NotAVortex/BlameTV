@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { getRelatedVideos } from "@/lib/recommend";
@@ -11,7 +12,7 @@ import CommentsTabs from "@/components/CommentsTabs";
 import SubscribeButton from "@/components/SubscribeButton";
 import VideoPlayer from "@/components/VideoPlayer";
 import VerifiedBadge from "@/components/VerifiedBadge";
-import { PROVIDER_LABELS } from "@/lib/embed";
+import { PROVIDER_LABELS, playerSrc } from "@/lib/embed";
 import {
   fetchYoutubeChannelMeta,
   youtubeIdFromEmbedUrl,
@@ -107,6 +108,7 @@ export default async function WatchPage({
 }) {
   const { id } = await params;
   const sp = await searchParams;
+  const host = (await headers()).get("host") ?? "localhost";
   const listParam = typeof sp.list === "string" ? sp.list : undefined;
   const user = await getSessionUser();
 
@@ -136,6 +138,7 @@ export default async function WatchPage({
   if (video.visibility !== "PUBLIC" && !isOwner && !isAdmin) notFound();
 
   const src = await ensureSourceMeta(video);
+  const playerEmbedUrl = video.embedUrl ? playerSrc(video.embedUrl, host) : null;
 
   const [myLike, likes, dislikes, subscribed, related, myHype, hypeCount] = await Promise.all([
     user
@@ -201,10 +204,10 @@ export default async function WatchPage({
       <RecordView videoId={id} />
 
       <div className="min-w-0">
-        {video.embedUrl ? (
+        {playerEmbedUrl ? (
           <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
             <iframe
-              src={video.embedUrl}
+              src={playerEmbedUrl}
               title={video.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
               allowFullScreen

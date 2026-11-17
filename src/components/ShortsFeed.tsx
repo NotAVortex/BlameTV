@@ -27,10 +27,14 @@ export default function ShortsFeed({
 }) {
   const [items, setItems] = useState<ShortItem[]>(initial);
   const [active, setActive] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const loadingRef = useRef(false);
   const iframes = useRef(new Map<number, HTMLIFrameElement>());
   const activeRef = useRef(0);
+  const router = useRouter();
 
   const appendShuffled = useCallback(() => {
     setItems((prev) => [...prev, ...[...initial].sort(() => Math.random() - 0.5)]);
@@ -53,6 +57,12 @@ export default function ShortsFeed({
       if (i !== except) send(iframe, "pauseVideo");
     });
   }, []);
+
+  function scrollToIndex(i: number) {
+    const sections = containerRef.current?.querySelectorAll<HTMLElement>("[data-index]");
+    const target = sections?.[i];
+    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -104,7 +114,19 @@ export default function ShortsFeed({
     return () => window.removeEventListener("pointerdown", unlock);
   }, [play]);
 
-  const router = useRouter();
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        scrollToIndex(Math.min(activeRef.current + 1, items.length - 1));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        scrollToIndex(Math.max(activeRef.current - 1, 0));
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [items.length]);
 
   async function vote(i: number, value: 1 | -1) {
     const post = items[i];
@@ -120,18 +142,38 @@ export default function ShortsFeed({
       const data = await res.json();
       setItems((prev) =>
         prev.map((p, idx) =>
-          idx === i || p.id === post.id
-            ? { ...p, likes: data.likes, dislikes: data.dislikes, myLike: idx === i ? next : p.myLike }
+          p.id === post.id
+            ? { ...p, likes: data.likes, dislikes: data.dislikes, myLike: next }
             : p
         )
       );
     }
   }
 
+  function toggleMute() {
+    const next = !muted;
+    setMuted(next);
+    iframes.current.forEach((iframe) => send(iframe, next ? "mute" : "unMute"));
+  }
+
+  async function share(post: ShortItem) {
+    const url = `${window.location.origin}/watch/${post.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      /* clipboard unavailable */
+    }
+    setCopied(post.id);
+    setTimeout(() => setCopied((c) => (c === post.id ? null : c)), 1500);
+  }
+
   if (initial.length === 0) return null;
 
   return (
-    <div className="h-[calc(100dvh-3.5rem)] snap-y snap-mandatory overflow-y-scroll overscroll-contain">
+    <div
+      ref={containerRef}
+      className="h-[calc(100dvh-3.5rem)] snap-y snap-mandatory overflow-y-scroll overscroll-contain"
+    >
       {items.map((v, i) => (
         <div
           key={`${v.id}-${i}`}
@@ -146,7 +188,7 @@ export default function ShortsFeed({
                     if (el) iframes.current.set(i, el);
                     else iframes.current.delete(i);
                   }}
-                  src={`${v.embedUrl}?enablejsapi=1&rel=0`}
+                  src={`${v.embedUrl}?enablejsapi=1&rel=0&playsinline=1`}
                   title={v.title}
                   className="absolute inset-0 h-full w-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -158,7 +200,7 @@ export default function ShortsFeed({
                 </div>
               )}
 
-              <div className="pointer-events-auto absolute bottom-20 right-2 z-10 flex flex-col items-center gap-4 sm:bottom-24 sm:right-3">
+              <div className="pointer-events-auto absolute bottom-20 right-2 z-10 flex flex-col items-center gap-3 sm:bottom-24 sm:right-3">
                 <Link
                   href={`/channel/${v.owner.username}`}
                   title={`Visit ${v.owner.displayName}`}
@@ -201,6 +243,77 @@ export default function ShortsFeed({
                     </svg>
                   </span>
                   <span className="text-xs font-medium drop-shadow">{v.dislikes}</span>
+                </button>
+                <Link
+                  href={`/watch/${v.id}`}
+                  aria-label="Comments"
+                  title="Comments on BlameTV"
+                  className="flex flex-col items-center gap-1 text-white transition-transform hover:scale-110"
+                >
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 backdrop-blur">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />
+                    </svg>
+                  </span>
+                  <span className="text-xs font-medium drop-shadow">Chat</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => share(v)}
+                  aria-label="Share"
+                  className="flex flex-col items-center gap-1 text-white transition-transform hover:scale-110"
+                >
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 backdrop-blur">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+                    </svg>
+                  </span>
+                  <span className="text-xs font-medium drop-shadow">
+                    {copied === v.id ? "Copied" : "Share"}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleMute}
+                  aria-label={muted ? "Unmute" : "Mute"}
+                  className="flex flex-col items-center gap-1 text-white transition-transform hover:scale-110"
+                >
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 backdrop-blur">
+                    {muted ? (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+                      </svg>
+                    )}
+                  </span>
+                  <span className="text-xs font-medium drop-shadow">{muted ? "Off" : "Sound"}</span>
+                </button>
+              </div>
+
+              <div className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-2 sm:right-3">
+                <button
+                  type="button"
+                  onClick={() => scrollToIndex(Math.max(active - 1, 0))}
+                  disabled={active === 0}
+                  aria-label="Previous short"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition-all hover:bg-white/25 disabled:opacity-0"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollToIndex(Math.min(active + 1, items.length - 1))}
+                  aria-label="Next short"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition-all hover:bg-white/25"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                  </svg>
                 </button>
               </div>
 

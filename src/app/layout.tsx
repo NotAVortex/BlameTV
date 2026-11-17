@@ -12,8 +12,8 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_SITE_URL ??
       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"),
   ),
-  title: "BlameTV",
-  description: "Watch, upload and share videos on BlameTV",
+  title: "BlameTV Beta",
+  description: "Watch, repost and share videos on BlameTV Beta — no ads, no uploads, just embeds",
 };
 
 export default async function RootLayout({
